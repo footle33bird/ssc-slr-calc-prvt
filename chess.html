@@ -259,6 +259,35 @@
         color: var(--bp);
         text-shadow: 0 1px 3px rgba(200, 169, 110, 0.25);
       }
+      /* the piece that just moved slides in from its origin square */
+      .piece.slide-in {
+        animation: pieceSlide 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        position: relative;
+        z-index: 3;
+      }
+      @keyframes pieceSlide {
+        from {
+          transform: translate(var(--dx, 0), var(--dy, 0));
+        }
+        to {
+          transform: translate(0, 0);
+        }
+      }
+      /* legal-move dots gently pulse */
+      .sq.hint::after {
+        animation: hintPulse 1.4s ease-in-out infinite;
+      }
+      @keyframes hintPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scale(1.2);
+          opacity: 0.72;
+        }
+      }
 
       /* controls */
       .controls {
@@ -465,6 +494,7 @@
         capB,
         gameOver;
       let sqPx = 56; // square size in px — recalculated on resize
+      let animateLast = false; // animate the last move's piece sliding in
 
       // ── HELPERS ────────────────────────────────────────────────
       const isW = (p) =>
@@ -594,6 +624,17 @@
               span.className = "piece " + (isW(p) ? "wp" : "bp");
               span.style.fontSize = Math.round(sqPx * 0.72) + "px";
               span.textContent = GLYPH[p];
+              // slide the just-moved piece in from where it came
+              if (animateLast && hist.length) {
+                const lm = hist[hist.length - 1];
+                if (lm.tr === row && lm.tc === col) {
+                  const sri = flipped ? 7 - lm.fr : lm.fr;
+                  const sci = flipped ? 7 - lm.fc : lm.fc;
+                  span.style.setProperty("--dx", (sci - ci) * sqPx + "px");
+                  span.style.setProperty("--dy", (sri - ri) * sqPx + "px");
+                  span.classList.add("slide-in");
+                }
+              }
               sq.appendChild(span);
             }
             sq.addEventListener("click", () => handleClick(row, col));
@@ -607,6 +648,8 @@
         document.getElementById("capB").textContent = capB
           .map((p) => GLYPH[p])
           .join(" ");
+
+        animateLast = false; // consume — only the move render animates
       }
 
       // ── CLICK HANDLER ──────────────────────────────────────────
@@ -708,6 +751,7 @@
         const promoB = p === "p" && tr === 7;
         if (promoW || promoB) {
           bd[tr][tc] = promoW ? "Q" : "q"; // default queen
+          animateLast = true;
           render();
           showPromoModal(promoW, tr, tc);
           return; // turn switch happens inside modal callback
@@ -738,6 +782,7 @@
               (inC ? ' — <span style="color:var(--danger)">Check!</span>' : ""),
           );
         }
+        animateLast = true;
         render();
         if (!gameOver && gameMode === "ai" && turn === "b")
           setTimeout(aiMove, 320);

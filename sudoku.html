@@ -210,6 +210,25 @@
       .cell.user-wrong {
         color: var(--danger);
       }
+      /* a just-entered correct digit pops in */
+      .cell.place-ok {
+        animation: cellPop 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+      }
+      @keyframes cellPop {
+        0% { transform: scale(0.4); }
+        70% { transform: scale(1.22); }
+        100% { transform: scale(1); }
+      }
+      /* a wrong digit shakes */
+      .cell.place-bad {
+        animation: cellShake 0.32s ease;
+      }
+      @keyframes cellShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        50% { transform: translateX(3px); }
+        75% { transform: translateX(-2px); }
+      }
       .cell.sel {
         background: var(--accent-dim) !important;
       }
@@ -415,6 +434,7 @@
         timerInt,
         noteMode,
         solved;
+      let lastPlaced = null; // {r,c} — cell to animate after a digit entry
 
       // ── PUZZLE GEN ──────────────────────────────────────────
       function genSolution() {
@@ -545,6 +565,8 @@
                 v === solution[r][c] ? "user-right" : "user-wrong",
               );
               el.textContent = v;
+              if (lastPlaced && lastPlaced.r === r && lastPlaced.c === c)
+                el.classList.add(lastPlaced.ok ? "place-ok" : "place-bad");
             } else if (notes[r][c].size > 0) {
               const ng = document.createElement("div");
               ng.className = "notes-grid";
@@ -588,6 +610,8 @@
         er.textContent = "⌫ Erase";
         er.onclick = () => input(0);
         np.appendChild(er);
+
+        lastPlaced = null; // consume — only animate the render right after entry
       }
 
       function input(n) {
@@ -608,6 +632,7 @@
           return;
         }
         grid[r][c] = n;
+        lastPlaced = { r, c, ok: n === solution[r][c] };
         if (n !== solution[r][c]) {
           mistakes++;
           updateMistakes();

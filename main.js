@@ -91,7 +91,7 @@ let state = {
 let maxVisited = 0;
 
 // ── THEME ──
-function toggleTheme() {
+function applyTheme() {
   const html = document.documentElement;
   const isDark = html.getAttribute("data-theme") === "dark";
   html.setAttribute("data-theme", isDark ? "light" : "dark");
@@ -104,6 +104,48 @@ function toggleTheme() {
   document
     .querySelectorAll("select")
     .forEach((s) => (s.style.backgroundImage = arrow));
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Fallback: smooth color crossfade when View Transitions aren't available
+  if (!document.startViewTransition || reduce) {
+    html.classList.add("theme-anim");
+    applyTheme();
+    window.setTimeout(() => html.classList.remove("theme-anim"), 480);
+    return;
+  }
+
+  // Circular reveal expanding from the theme toggle button
+  const btn = document.getElementById("themeBtn");
+  const rect = btn ? btn.getBoundingClientRect() : null;
+  const x = rect ? rect.left + rect.width / 2 : window.innerWidth - 56;
+  const y = rect ? rect.top + rect.height / 2 : 48;
+  const endRadius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y),
+  );
+
+  html.classList.add("theme-switching");
+  const vt = document.startViewTransition(applyTheme);
+  vt.ready.then(() => {
+    html.animate(
+      {
+        clipPath: [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${endRadius}px at ${x}px ${y}px)`,
+        ],
+      },
+      {
+        duration: 520,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        pseudoElement: "::view-transition-new(root)",
+      },
+    );
+  });
+  vt.finished.finally(() => html.classList.remove("theme-switching"));
 }
 
 // ── HELPERS ──
@@ -584,7 +626,7 @@ function renderResult(
         <div class="result-header">
           <div>
             <div class="result-label">Net Pay</div>
-            <div class="result-net-amount"><span class="result-net-currency">₾</span>${total.toFixed(2)}</div>
+            <div class="result-net-amount"><span class="result-net-currency">₾</span><span id="netAmt">${total.toFixed(2)}</span></div>
             ${grossLine}
           </div>
           <div style="text-align:right">
@@ -612,7 +654,7 @@ function renderResult(
           ${state.unpaidLeavesCount > 0 ? `<div class="result-row"><span class="result-row-label">Unpaid Leaves (${state.unpaidLeavesCount}d)</span><span class="result-row-val negative">−${adds.unpaidLeavesAmt.toFixed(2)} ₾</span></div>` : ""}
           <div class="result-final-row">
             <span class="result-final-label">Final Amount</span>
-            <span class="result-final-value">₾${total.toFixed(2)}</span>
+            <span class="result-final-value" id="finalAmt">₾${total.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -715,6 +757,35 @@ function renderResult(
         <button class="btn btn-primary" onclick="resetAll()">New Calculation ✦</button>
       </div>
     `;
+
+  // count the headline figures from the previously shown total → new total,
+  // so a first result counts up from zero and edits glide smoothly
+  const from = lastTotalShown;
+  countUp(document.getElementById("netAmt"), from, total, "", 2);
+  countUp(document.getElementById("finalAmt"), from, total, "₾", 2);
+  lastTotalShown = total;
+}
+
+let lastTotalShown = 0;
+
+// animate a number from `from` → `to` with an ease-out curve
+function countUp(el, from, to, prefix, decimals) {
+  if (!el) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || from === to) {
+    el.textContent = prefix + to.toFixed(decimals);
+    return;
+  }
+  const dur = 900;
+  const start = performance.now();
+  function frame(now) {
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    el.textContent = prefix + (from + (to - from) * eased).toFixed(decimals);
+    if (t < 1) requestAnimationFrame(frame);
+    else el.textContent = prefix + to.toFixed(decimals);
+  }
+  requestAnimationFrame(frame);
 }
 
 function resetAll() {
@@ -730,6 +801,7 @@ function resetAll() {
     adds: {},
   };
   maxVisited = 0;
+  lastTotalShown = 0; // next result counts up from zero again
   document
     .querySelectorAll(".option-card")
     .forEach((c) => c.classList.remove("selected"));
@@ -753,3 +825,20 @@ function resetAll() {
   });
   setStep(0);
 }
+
+// ── INTRO SPLASH ──
+// Remove the entrance overlay once its lift animation completes so it never
+// blocks interaction. Falls back to a timeout, and skips for reduced motion.
+window.addEventListener("DOMContentLoaded", () => {
+  const intro = document.getElementById("intro");
+  if (!intro) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) {
+    intro.classList.add("done");
+    return;
+  }
+  intro.addEventListener("animationend", (e) => {
+    if (e.animationName === "introLift") intro.classList.add("done");
+  });
+  setTimeout(() => intro.classList.add("done"), 2600); // safety fallback
+});

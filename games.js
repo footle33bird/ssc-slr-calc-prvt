@@ -9,49 +9,108 @@
   ───────────────────────────────────────── */
   const style = document.createElement("style");
   style.textContent = `
-    /* ── SIDEBAR PANEL ── */
+    /* ── SIDEBAR PANEL (burger menu) ── */
     #mg-panel {
       position: fixed;
       left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 20px;
       z-index: 800;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
+      align-items: flex-start;
     }
 
-    .mg-panel-label {
+    /* burger toggle button */
+    #mg-burger {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      background: var(--surface, #111);
+      border: 1px solid var(--border2, rgba(255,255,255,0.12));
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+    }
+    #mg-burger:hover {
+      border-color: var(--accent-border, rgba(200,169,110,0.35));
+      background: var(--surface2, #181818);
+    }
+    .mg-burger-icon {
+      position: relative;
+      width: 16px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+    .mg-burger-icon span {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--accent, #c8a96e);
+      transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.2s ease;
+    }
+    .mg-burger-icon span:nth-child(1) { top: 0; }
+    .mg-burger-icon span:nth-child(2) { top: 5px; }
+    .mg-burger-icon span:nth-child(3) { top: 10px; }
+    #mg-panel.open .mg-burger-icon span:nth-child(1) { transform: translateY(5px) rotate(45deg); }
+    #mg-panel.open .mg-burger-icon span:nth-child(2) { opacity: 0; }
+    #mg-panel.open .mg-burger-icon span:nth-child(3) { transform: translateY(-5px) rotate(-45deg); }
+
+    .mg-burger-label {
       font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.22em;
+      font-size: 10px;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--muted, rgba(240,237,232,0.4));
-      padding: 0 2px;
-      margin-bottom: 4px;
+      color: var(--accent, #c8a96e);
+    }
+
+    /* dropdown list */
+    #mg-games-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 168px;
+      padding: 6px;
+      background: var(--surface, #111);
+      border: 1px solid var(--border2, rgba(255,255,255,0.12));
+      border-radius: 12px;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.4);
+      transform-origin: top left;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.97);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22,1,0.36,1);
+    }
+    #mg-panel.open #mg-games-list {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
     }
 
     .mg-panel-btn {
       display: flex;
       align-items: center;
-      gap: 10px;
-      width: 44px;
-      overflow: hidden;
+      gap: 12px;
+      width: 100%;
       padding: 10px 12px;
-      background: var(--surface, #111);
-      border: 1px solid var(--border2, rgba(255,255,255,0.12));
-      border-radius: 10px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.22,1,0.36,1);
+      transition: all 0.16s ease;
       white-space: nowrap;
       user-select: none;
       text-decoration: none;
+      text-align: left;
     }
     .mg-panel-btn:hover {
-      width: 148px;
       border-color: var(--accent-border, rgba(200,169,110,0.35));
       background: var(--surface2, #181818);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
     .mg-panel-icon {
@@ -66,13 +125,6 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--accent, #c8a96e);
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      pointer-events: none;
-    }
-    .mg-panel-btn:hover .mg-panel-name {
-      opacity: 1;
-      transition-delay: 0.08s;
     }
 
     /* ── OVERLAY ── */
@@ -340,6 +392,8 @@
     <div class="mg-picker-row" data-game="2048"><span class="mg-picker-icon">🔢</span><span class="mg-picker-name">2048</span></div>
     <div class="mg-picker-row" data-game="sudoku"><span class="mg-picker-icon">🔷</span><span class="mg-picker-name">Sudoku</span></div>
     <div class="mg-picker-row" data-game="chess"><span class="mg-picker-icon">♟</span><span class="mg-picker-name">Chess</span></div>
+    <div class="mg-picker-row" data-game="wordle"><span class="mg-picker-icon">🔤</span><span class="mg-picker-name">Wordle</span></div>
+    <div class="mg-picker-row" data-game="minesweeper"><span class="mg-picker-icon">💣</span><span class="mg-picker-name">Minesweeper</span></div>
   `;
   document.body.appendChild(picker);
 
@@ -367,29 +421,56 @@
   const panel = document.createElement("div");
   panel.id = "mg-panel";
   panel.innerHTML = `
-    <div class="mg-panel-label">Games</div>
-    <button class="mg-panel-btn" onclick="window.mgOpen('snake')" title="Snake">
-      <span class="mg-panel-icon">🐍</span>
-      <span class="mg-panel-name">Snake</span>
+    <button id="mg-burger" aria-label="Toggle games menu">
+      <span class="mg-burger-icon"><span></span><span></span><span></span></span>
+      <span class="mg-burger-label">Games</span>
     </button>
-    <button class="mg-panel-btn" onclick="window.mgOpen('2048')" title="2048">
-      <span class="mg-panel-icon">🔢</span>
-      <span class="mg-panel-name">2048</span>
-    </button>
-    <button class="mg-panel-btn" onclick="window.mgOpen('sudoku')" title="Sudoku">
-      <span class="mg-panel-icon">🔷</span>
-      <span class="mg-panel-name">Sudoku</span>
-    </button>
-    <button class="mg-panel-btn" onclick="window.mgOpen('chess')" title="Chess">
-      <span class="mg-panel-icon">♟</span>
-      <span class="mg-panel-name">Chess</span>
-    </button>
-    <button class="mg-panel-btn" onclick="window.mgOpen('tetris')" title="Tetris">
-      <span class="mg-panel-icon">🟧</span>
-      <span class="mg-panel-name">Tetris</span>
-    </button>
+    <div id="mg-games-list">
+      <button class="mg-panel-btn" onclick="window.mgOpen('snake')" title="Snake">
+        <span class="mg-panel-icon">🐍</span>
+        <span class="mg-panel-name">Snake</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('2048')" title="2048">
+        <span class="mg-panel-icon">🔢</span>
+        <span class="mg-panel-name">2048</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('sudoku')" title="Sudoku">
+        <span class="mg-panel-icon">🔷</span>
+        <span class="mg-panel-name">Sudoku</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('chess')" title="Chess">
+        <span class="mg-panel-icon">♟</span>
+        <span class="mg-panel-name">Chess</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('tetris')" title="Tetris">
+        <span class="mg-panel-icon">🟧</span>
+        <span class="mg-panel-name">Tetris</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('wordle')" title="Wordle">
+        <span class="mg-panel-icon">🔤</span>
+        <span class="mg-panel-name">Wordle</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('minesweeper')" title="Minesweeper">
+        <span class="mg-panel-icon">💣</span>
+        <span class="mg-panel-name">Minesweeper</span>
+      </button>
+    </div>
   `;
   document.body.appendChild(panel);
+
+  // burger toggle: list is hidden until clicked
+  const burger = panel.querySelector("#mg-burger");
+  burger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    panel.classList.toggle("open");
+  });
+  // collapse the menu after picking a game, and when clicking away
+  panel.querySelectorAll(".mg-panel-btn").forEach((b) =>
+    b.addEventListener("click", () => panel.classList.remove("open"))
+  );
+  document.addEventListener("click", (e) => {
+    if (!panel.contains(e.target)) panel.classList.remove("open");
+  });
 
   /* ─────────────────────────────────────────
      MODAL HTML
@@ -440,6 +521,8 @@
     sudoku: { icon: "🔷", name: "Sudoku", file: "sudoku.html" },
     chess: { icon: "♟", name: "Chess", file: "chess.html" },
     tetris: { icon: "🟧", name: "Tetris", file: "tetris.html" },
+    wordle: { icon: "🔤", name: "Wordle", file: "wordle.html" },
+    minesweeper: { icon: "💣", name: "Minesweeper", file: "minesweeper.html" },
   };
 
   window.mgOpen = function (game) {

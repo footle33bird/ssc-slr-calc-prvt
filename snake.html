@@ -226,44 +226,6 @@
         border-color: var(--accent-border);
       }
 
-      /* ── D-PAD (for touch) ── */
-      .dpad {
-        display: grid;
-        grid-template-areas: ". up ." "left . right" ". down .";
-        grid-template-columns: repeat(3, 40px);
-        grid-template-rows: repeat(3, 40px);
-        gap: 4px;
-      }
-      .dpad-btn {
-        border: 1px solid var(--border2);
-        border-radius: 7px;
-        background: var(--surface);
-        color: var(--text);
-        font-size: 16px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.15s;
-        -webkit-tap-highlight-color: transparent;
-      }
-      .dpad-btn:active {
-        background: var(--accent-dim);
-        border-color: var(--accent-border);
-      }
-      .dpad-up {
-        grid-area: up;
-      }
-      .dpad-left {
-        grid-area: left;
-      }
-      .dpad-right {
-        grid-area: right;
-      }
-      .dpad-down {
-        grid-area: down;
-      }
-
       .note {
         font-size: 10px;
         color: var(--muted);
@@ -339,15 +301,7 @@
         <button class="btn btn-ghost" onclick="pauseGame()">⏸ Pause</button>
       </div>
 
-      <!-- touch d-pad -->
-      <div class="dpad">
-        <button class="dpad-btn dpad-up" onclick="tryDir(0, -1)">▲</button>
-        <button class="dpad-btn dpad-left" onclick="tryDir(-1, 0)">◀</button>
-        <button class="dpad-btn dpad-right" onclick="tryDir(1, 0)">▶</button>
-        <button class="dpad-btn dpad-down" onclick="tryDir(0, 1)">▼</button>
-      </div>
-
-      <div class="note">Arrow keys / WASD · Space to pause</div>
+      <div class="note">Arrow keys / WASD · Space to pause · Swipe on mobile</div>
     </div>
 
     <script>
@@ -360,8 +314,9 @@
       let CELL; // calculated from canvas size
 
       let snake,
+        prevSnake,        // positions at the start of the current step (for interpolation)
         dir,
-        nextDir,
+        dirQueue,         // buffered turns — one applied per step, so fast presses register
         food,
         bonus,
         score,
@@ -370,15 +325,17 @@
         paused = false,
         loop,
         speed = 5,
-        bonusTimer = 0;
+        bonusTimer = 0,
+        stepMs = 1000 / 5, // duration of one step, for smooth animation
+        lastStep = 0;      // timestamp of the last logic step
 
       // ── SIZING ─────────────────────────────────────────────
       function calcSize() {
         // fit inside page width minus padding, cap at 400px
         const maxSide = Math.min(
           document.documentElement.clientWidth - 24,
-          document.documentElement.clientHeight * 0.55,
-          400,
+          document.documentElement.clientHeight * 0.74,
+          560,
         );
         const side = Math.floor(maxSide / COLS) * COLS;
         canvas.width = side;
@@ -386,8 +343,7 @@
         wrap.style.width = side + "px";
         wrap.style.height = side + "px";
         CELL = side / COLS;
-        if (running && !paused) draw();
-        else if (!running) drawIdle();
+        if (!running) drawIdle();
       }
 
       window.addEventListener("resize", calcSize);
@@ -399,8 +355,9 @@
           { x: 9, y: 10 },
           { x: 8, y: 10 },
         ];
+        prevSnake = snake.map((s) => ({ ...s }));
         dir = { x: 1, y: 0 };
-        nextDir = { x: 1, y: 0 };
+        dirQueue = [];
         food = spawnFood();
         bonus = null;
         bonusTimer = 0;
@@ -410,8 +367,10 @@
         document.getElementById("overlay").classList.remove("visible");
         document.getElementById("score").textContent = 0;
         document.getElementById("length").textContent = 3;
+        stepMs = 1000 / speed;
+        lastStep = performance.now();
         clearInterval(loop);
-        loop = setInterval(tick, 1000 / speed);
+        loop = setInterval(tick, stepMs);
       }
 
       function spawnFood() {
@@ -427,7 +386,16 @@
 
       function tick() {
         if (!running || paused) return;
-        dir = { ...nextDir };
+        // apply the next buffered turn (rejecting any 180° reversal)
+        while (dirQueue.length) {
+          const d = dirQueue.shift();
+          if (d.x !== -dir.x || d.y !== -dir.y) {
+            dir = d;
+            break;
+          }
+        }
+        prevSnake = snake.map((s) => ({ ...s }));
+        lastStep = performance.now();
         const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
         if (
           head.x < 0 ||
@@ -463,7 +431,6 @@
         }
         document.getElementById("score").textContent = score;
         document.getElementById("length").textContent = snake.length;
-        draw();
       }
 
       function gameOver() {
@@ -497,18 +464,22 @@
       function changeSpeed(d) {
         speed = Math.max(1, Math.min(15, speed + d));
         document.getElementById("speedVal").textContent = speed;
+        stepMs = 1000 / speed;
         if (running && !paused) {
           clearInterval(loop);
-          loop = setInterval(tick, 1000 / speed);
+          loop = setInterval(tick, stepMs);
         }
       }
 
       function tryDir(dx, dy) {
-        // for d-pad / external calls
-        if (dx === 1 && dir.x !== -1) nextDir = { x: 1, y: 0 };
-        else if (dx === -1 && dir.x !== 1) nextDir = { x: -1, y: 0 };
-        else if (dy === -1 && dir.y !== 1) nextDir = { x: 0, y: -1 };
-        else if (dy === 1 && dir.y !== -1) nextDir = { x: 0, y: 1 };
+        if (!running || paused) return;
+        const d = { x: dx, y: dy };
+        // compare against the last queued turn (or current dir) so rapid
+        // presses chain correctly instead of overwriting each other
+        const ref = dirQueue.length ? dirQueue[dirQueue.length - 1] : dir;
+        if (d.x === ref.x && d.y === ref.y) return; // same direction
+        if (d.x === -ref.x && d.y === -ref.y) return; // 180° reversal
+        if (dirQueue.length < 3) dirQueue.push(d);
       }
 
       // ── DRAW ───────────────────────────────────────────────
@@ -518,11 +489,9 @@
           .trim();
       }
 
-      function draw() {
+      function drawGrid() {
         ctx.fillStyle = css("--surface");
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // grid lines
         ctx.strokeStyle = "rgba(255,255,255,0.025)";
         ctx.lineWidth = 1;
         for (let i = 0; i <= COLS; i++) {
@@ -537,44 +506,44 @@
           ctx.lineTo(canvas.width, j * CELL);
           ctx.stroke();
         }
+      }
 
-        // food
+      function draw(t) {
+        drawGrid();
+
+        const cx = (v) => v * CELL + CELL / 2;
+
+        // food (gentle pulse so it feels alive)
+        const pulse = 1 + Math.sin(performance.now() / 220) * 0.07;
         ctx.fillStyle = css("--danger");
         ctx.beginPath();
-        ctx.arc(
-          food.x * CELL + CELL / 2,
-          food.y * CELL + CELL / 2,
-          CELL / 2 - 2,
-          0,
-          Math.PI * 2,
-        );
+        ctx.arc(cx(food.x), cx(food.y), (CELL / 2 - 2) * pulse, 0, Math.PI * 2);
         ctx.fill();
 
         // bonus
         if (bonus) {
           ctx.fillStyle = "#c8a96e";
           ctx.beginPath();
-          ctx.arc(
-            bonus.x * CELL + CELL / 2,
-            bonus.y * CELL + CELL / 2,
-            CELL / 2 - 1,
-            0,
-            Math.PI * 2,
-          );
+          ctx.arc(cx(bonus.x), cx(bonus.y), CELL / 2 - 1, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = "rgba(10,10,10,0.8)";
           ctx.font = `bold ${Math.round(CELL * 0.5)}px DM Mono`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(
-            "★",
-            bonus.x * CELL + CELL / 2,
-            bonus.y * CELL + CELL / 2,
-          );
+          ctx.fillText("★", cx(bonus.x), cx(bonus.y));
         }
 
-        // snake
+        // snake — each segment slides from its previous cell to its current one
+        let headX = snake[0].x,
+          headY = snake[0].y;
         snake.forEach((s, i) => {
+          const from = prevSnake[Math.min(i, prevSnake.length - 1)] || s;
+          const x = from.x + (s.x - from.x) * t;
+          const y = from.y + (s.y - from.y) * t;
+          if (i === 0) {
+            headX = x;
+            headY = y;
+          }
           const ratio = i / snake.length;
           ctx.fillStyle =
             i === 0
@@ -582,51 +551,38 @@
               : `rgba(200,169,110,${0.9 - ratio * 0.6})`;
           ctx.beginPath();
           const rad = i === 0 ? CELL * 0.3 : CELL * 0.22;
-          ctx.roundRect(
-            s.x * CELL + 1,
-            s.y * CELL + 1,
-            CELL - 2,
-            CELL - 2,
-            rad,
-          );
+          ctx.roundRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2, rad);
           ctx.fill();
-          // eyes on head
-          if (i === 0) {
-            ctx.fillStyle = "rgba(10,10,10,0.85)";
-            const er = CELL * 0.1;
-            const ex =
-              dir.x === 0
-                ? [CELL * 0.3, CELL * 0.7]
-                : [CELL * 0.62, CELL * 0.62];
-            const ey =
-              dir.y === 0 ? [CELL * 0.3, CELL * 0.3] : [CELL * 0.3, CELL * 0.7];
-            ctx.beginPath();
-            ctx.arc(s.x * CELL + ex[0], s.y * CELL + ey[0], er, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(s.x * CELL + ex[1], s.y * CELL + ey[1], er, 0, Math.PI * 2);
-            ctx.fill();
-          }
         });
+
+        // eyes on head (oriented by current direction)
+        ctx.fillStyle = "rgba(10,10,10,0.85)";
+        const er = CELL * 0.1;
+        const ex =
+          dir.x === 0 ? [CELL * 0.3, CELL * 0.7] : [CELL * 0.62, CELL * 0.62];
+        const ey =
+          dir.y === 0 ? [CELL * 0.3, CELL * 0.3] : [CELL * 0.3, CELL * 0.7];
+        ctx.beginPath();
+        ctx.arc(headX * CELL + ex[0], headY * CELL + ey[0], er, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(headX * CELL + ex[1], headY * CELL + ey[1], er, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // continuous render loop — interpolates between logic steps for smoothness
+      function render() {
+        if (running) {
+          const t = paused
+            ? 1
+            : Math.min(1, (performance.now() - lastStep) / stepMs);
+          draw(t);
+        }
+        requestAnimationFrame(render);
       }
 
       function drawIdle() {
-        ctx.fillStyle = css("--surface");
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "rgba(255,255,255,0.025)";
-        ctx.lineWidth = 1;
-        for (let i = 0; i <= COLS; i++) {
-          ctx.beginPath();
-          ctx.moveTo(i * CELL, 0);
-          ctx.lineTo(i * CELL, canvas.height);
-          ctx.stroke();
-        }
-        for (let j = 0; j <= ROWS; j++) {
-          ctx.beginPath();
-          ctx.moveTo(0, j * CELL);
-          ctx.lineTo(canvas.width, j * CELL);
-          ctx.stroke();
-        }
+        drawGrid();
       }
 
       // ── KEYBOARD ───────────────────────────────────────────
@@ -681,6 +637,7 @@
       } catch (e) {}
       calcSize();
       drawIdle();
+      requestAnimationFrame(render);
     </script>
   </body>
 </html>
