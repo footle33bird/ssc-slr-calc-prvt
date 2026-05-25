@@ -114,6 +114,27 @@
         background: var(--accent-dim);
       }
 
+      /* AI difficulty selector */
+      .diff-row {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        max-width: 520px;
+        flex-shrink: 0;
+      }
+      .diff-row.show {
+        display: flex;
+      }
+      .diff-label {
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-right: 4px;
+      }
+
       /* status */
       .status-bar {
         background: var(--surface);
@@ -416,6 +437,23 @@
         </div>
       </div>
 
+      <!-- AI difficulty (only shown in vs-AI mode) -->
+      <div class="diff-row" id="diffRow">
+        <span class="diff-label">AI Level</span>
+        <button class="mode-btn" id="lvl-easy" onclick="setLevel('easy')">
+          Easy
+        </button>
+        <button class="mode-btn active" id="lvl-medium" onclick="setLevel('medium')">
+          Medium
+        </button>
+        <button class="mode-btn" id="lvl-hard" onclick="setLevel('hard')">
+          Hard
+        </button>
+        <button class="mode-btn" id="lvl-expert" onclick="setLevel('expert')">
+          Expert
+        </button>
+      </div>
+
       <!-- status -->
       <div class="status-bar" id="status"><b>White</b>'s turn</div>
 
@@ -495,6 +533,7 @@
         gameOver;
       let sqPx = 56; // square size in px — recalculated on resize
       let animateLast = false; // animate the last move's piece sliding in
+      let aiLevel = "medium"; // easy | medium | hard | expert
 
       // ── HELPERS ────────────────────────────────────────────────
       const isW = (p) =>
@@ -511,7 +550,20 @@
           .getElementById("pvpBtn")
           .classList.toggle("active", m === "pvp");
         document.getElementById("aiBtn").classList.toggle("active", m === "ai");
+        document.getElementById("diffRow").classList.toggle("show", m === "ai");
         newGame();
+      }
+
+      function setLevel(l) {
+        aiLevel = l;
+        ["easy", "medium", "hard", "expert"].forEach((k) =>
+          document
+            .getElementById("lvl-" + k)
+            .classList.toggle("active", k === l),
+        );
+        // if it's the AI's turn right now, let the new level move
+        if (gameMode === "ai" && turn === "b" && !gameOver)
+          setTimeout(aiMove, 120);
       }
 
       function newGame() {
@@ -751,6 +803,12 @@
         const promoB = p === "p" && tr === 7;
         if (promoW || promoB) {
           bd[tr][tc] = promoW ? "Q" : "q"; // default queen
+          // the AI (always black) auto-promotes to queen — no human picker
+          if (gameMode === "ai" && promoB) {
+            animateLast = true;
+            finishTurn();
+            return;
+          }
           animateLast = true;
           render();
           showPromoModal(promoW, tr, tc);
@@ -784,8 +842,11 @@
         }
         animateLast = true;
         render();
-        if (!gameOver && gameMode === "ai" && turn === "b")
-          setTimeout(aiMove, 320);
+        if (!gameOver && gameMode === "ai" && turn === "b") {
+          setStatus('<b>Black</b> is thinking…');
+          // let the status paint before the (possibly heavy) search blocks
+          setTimeout(aiMove, 60);
+        }
       }
 
       function showPromoModal(forWhite, tr, tc) {
@@ -1021,28 +1082,278 @@
         return true;
       }
 
-      // ── SIMPLE AI ─────────────────────────────────────────────
-      function aiMove() {
-        if (gameOver || turn !== "b") return;
-        const all = [];
+      // ── CHESS ENGINE (minimax + alpha-beta + quiescence) ───────
+      //
+      // Difficulty is mostly search depth. Easy/Medium also add eval
+      // "noise" and an occasional random blunder so beginners can win;
+      // Hard/Expert search deeper, run a capture-only quiescence search
+      // to avoid hanging pieces, and never blunder on purpose.
+      const DIFF = {
+        easy: { depth: 1, quiesce: false, blunder: 0.35, noise: 75 },
+        medium: { depth: 2, quiesce: false, blunder: 0.08, noise: 30 },
+        hard: { depth: 3, quiesce: true, blunder: 0, noise: 0 },
+        expert: { depth: 4, quiesce: true, blunder: 0, noise: 0 },
+      };
+
+      // material in centipawns
+      const PVAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+      const MATE = 1000000;
+
+      // piece-square tables — row 0 = rank 8 (black's home), row 7 = rank 1
+      // (white's home). White reads [r][c]; black mirrors via [7-r][c].
+      // prettier-ignore
+      const PST = {
+        p: [
+            0,  0,  0,  0,  0,  0,  0,  0,
+           50, 50, 50, 50, 50, 50, 50, 50,
+           10, 10, 20, 30, 30, 20, 10, 10,
+            5,  5, 10, 25, 25, 10,  5,  5,
+            0,  0,  0, 20, 20,  0,  0,  0,
+            5, -5,-10,  0,  0,-10, -5,  5,
+            5, 10, 10,-20,-20, 10, 10,  5,
+            0,  0,  0,  0,  0,  0,  0,  0],
+        n: [
+          -50,-40,-30,-30,-30,-30,-40,-50,
+          -40,-20,  0,  0,  0,  0,-20,-40,
+          -30,  0, 10, 15, 15, 10,  0,-30,
+          -30,  5, 15, 20, 20, 15,  5,-30,
+          -30,  0, 15, 20, 20, 15,  0,-30,
+          -30,  5, 10, 15, 15, 10,  5,-30,
+          -40,-20,  0,  5,  5,  0,-20,-40,
+          -50,-40,-30,-30,-30,-30,-40,-50],
+        b: [
+          -20,-10,-10,-10,-10,-10,-10,-20,
+          -10,  0,  0,  0,  0,  0,  0,-10,
+          -10,  0,  5, 10, 10,  5,  0,-10,
+          -10,  5,  5, 10, 10,  5,  5,-10,
+          -10,  0, 10, 10, 10, 10,  0,-10,
+          -10, 10, 10, 10, 10, 10, 10,-10,
+          -10,  5,  0,  0,  0,  0,  5,-10,
+          -20,-10,-10,-10,-10,-10,-10,-20],
+        r: [
+            0,  0,  0,  0,  0,  0,  0,  0,
+            5, 10, 10, 10, 10, 10, 10,  5,
+           -5,  0,  0,  0,  0,  0,  0, -5,
+           -5,  0,  0,  0,  0,  0,  0, -5,
+           -5,  0,  0,  0,  0,  0,  0, -5,
+           -5,  0,  0,  0,  0,  0,  0, -5,
+           -5,  0,  0,  0,  0,  0,  0, -5,
+            0,  0,  0,  5,  5,  0,  0,  0],
+        q: [
+          -20,-10,-10, -5, -5,-10,-10,-20,
+          -10,  0,  0,  0,  0,  0,  0,-10,
+          -10,  0,  5,  5,  5,  5,  0,-10,
+           -5,  0,  5,  5,  5,  5,  0, -5,
+            0,  0,  5,  5,  5,  5,  0, -5,
+          -10,  5,  5,  5,  5,  5,  0,-10,
+          -10,  0,  5,  0,  0,  0,  0,-10,
+          -20,-10,-10, -5, -5,-10,-10,-20],
+        k: [
+          -30,-40,-40,-50,-50,-40,-40,-30,
+          -30,-40,-40,-50,-50,-40,-40,-30,
+          -30,-40,-40,-50,-50,-40,-40,-30,
+          -30,-40,-40,-50,-50,-40,-40,-30,
+          -20,-30,-30,-40,-40,-30,-30,-20,
+          -10,-20,-20,-20,-20,-20,-20,-10,
+           20, 20,  0,  0,  0,  0, 20, 20,
+           20, 30, 10,  0,  0, 10, 30, 20],
+      };
+
+      let useQuiesce = false; // set per-search from the chosen difficulty
+
+      // Static evaluation, positive = good for White (centipawns).
+      function evaluate() {
+        let s = 0;
         for (let r = 0; r < 8; r++)
           for (let c = 0; c < 8; c++) {
-            if (!isB(bd[r][c])) continue;
-            legalMoves(r, c).forEach((m) => all.push({ fr: r, fc: c, ...m }));
+            const p = bd[r][c];
+            if (!p) continue;
+            const t = p.toLowerCase();
+            const idx = r * 8 + c;
+            if (isW(p)) s += PVAL[t] + PST[t][idx];
+            else s -= PVAL[t] + PST[t][(7 - r) * 8 + c];
           }
-        if (!all.length) return;
-        const scored = all.map((m) => {
-          let s = Math.random() * 0.9;
-          const cap = bd[m.r][m.c];
-          if (cap && VAL[cap.toLowerCase()]) s += VAL[cap.toLowerCase()] * 8;
-          // central control
-          s +=
-            (3.5 - Math.abs(m.r - 3.5)) * 0.3 +
-            (3.5 - Math.abs(m.c - 3.5)) * 0.3;
-          return { ...m, s };
-        });
-        scored.sort((a, b) => b.s - a.s);
-        const mv = scored[0];
+        return s;
+      }
+
+      // All legal moves for a colour, as {fr,fc,r,c,ep,castle}.
+      function genAll(color) {
+        turn = color; // legalMoves tests check against `turn`
+        const out = [];
+        for (let r = 0; r < 8; r++)
+          for (let c = 0; c < 8; c++) {
+            const p = bd[r][c];
+            if (!p) continue;
+            if (color === "w" && !isW(p)) continue;
+            if (color === "b" && !isB(p)) continue;
+            for (const m of legalMoves(r, c))
+              out.push({ fr: r, fc: c, r: m.r, c: m.c, ep: m.ep, castle: m.castle });
+          }
+        return out;
+      }
+
+      // Order captures first (MVV-LVA) to make alpha-beta prune harder.
+      function orderMoves(moves) {
+        for (const m of moves) {
+          const victim = bd[m.r][m.c];
+          m._o = victim
+            ? PVAL[victim.toLowerCase()] * 10 - PVAL[bd[m.fr][m.fc].toLowerCase()]
+            : 0;
+        }
+        moves.sort((a, b) => b._o - a._o);
+      }
+
+      // Apply a move on the global board, returning an undo record.
+      function makeSearch(m) {
+        const { fr, fc, r: tr, c: tc } = m;
+        const p = bd[fr][fc];
+        const u = {
+          fr, fc, tr, tc, p,
+          cap: bd[tr][tc],
+          castleR: { ...castleR },
+          ep,
+          epCap: 0,
+          epMove: m.ep,
+          castle: m.castle,
+        };
+        bd[tr][tc] = p;
+        bd[fr][fc] = 0;
+        if (m.ep) {
+          u.epCap = bd[fr][tc];
+          bd[fr][tc] = 0;
+        }
+        if (m.castle) {
+          if (tc === 6) { bd[tr][5] = bd[tr][7]; bd[tr][7] = 0; }
+          else { bd[tr][3] = bd[tr][0]; bd[tr][0] = 0; }
+        }
+        if (p === "P" && tr === 0) bd[tr][tc] = "Q";
+        else if (p === "p" && tr === 7) bd[tr][tc] = "q";
+        // castle rights
+        if (p === "K") { castleR.wK = false; castleR.wQ = false; }
+        if (p === "k") { castleR.bK = false; castleR.bQ = false; }
+        if (p === "R" && fr === 7) { if (fc === 0) castleR.wQ = false; if (fc === 7) castleR.wK = false; }
+        if (p === "r" && fr === 0) { if (fc === 0) castleR.bQ = false; if (fc === 7) castleR.bK = false; }
+        if (u.cap === "R" && tr === 7) { if (tc === 0) castleR.wQ = false; if (tc === 7) castleR.wK = false; }
+        if (u.cap === "r" && tr === 0) { if (tc === 0) castleR.bQ = false; if (tc === 7) castleR.bK = false; }
+        ep =
+          p === "P" && fr === 6 && tr === 4 ? { r: 5, c: tc }
+          : p === "p" && fr === 1 && tr === 3 ? { r: 2, c: tc }
+          : null;
+        return u;
+      }
+
+      function unmakeSearch(u) {
+        bd[u.fr][u.fc] = u.p;
+        bd[u.tr][u.tc] = u.cap;
+        if (u.epMove) bd[u.fr][u.tc] = u.epCap;
+        if (u.castle) {
+          if (u.tc === 6) { bd[u.tr][7] = bd[u.tr][5]; bd[u.tr][5] = 0; }
+          else { bd[u.tr][0] = bd[u.tr][3]; bd[u.tr][3] = 0; }
+        }
+        castleR = u.castleR;
+        ep = u.ep;
+      }
+
+      // Capture-only search to settle tactics at the leaves.
+      function quiesce(alpha, beta, color, ply) {
+        const stand = evaluate();
+        if (color === "w") {
+          if (stand >= beta) return beta;
+          if (stand > alpha) alpha = stand;
+        } else {
+          if (stand <= alpha) return alpha;
+          if (stand < beta) beta = stand;
+        }
+        const caps = genAll(color).filter((m) => bd[m.r][m.c] || m.ep);
+        orderMoves(caps);
+        for (const m of caps) {
+          const u = makeSearch(m);
+          const v = quiesce(alpha, beta, color === "w" ? "b" : "w", ply + 1);
+          unmakeSearch(u);
+          if (color === "w") {
+            if (v > alpha) alpha = v;
+            if (alpha >= beta) return beta;
+          } else {
+            if (v < beta) beta = v;
+            if (beta <= alpha) return alpha;
+          }
+        }
+        return color === "w" ? alpha : beta;
+      }
+
+      // Minimax with alpha-beta. White maximises, Black minimises.
+      function searchTree(depth, alpha, beta, color, ply) {
+        if (depth === 0)
+          return useQuiesce ? quiesce(alpha, beta, color, ply) : evaluate();
+        const moves = genAll(color);
+        if (!moves.length) {
+          turn = color;
+          if (kingInCheck(color))
+            return color === "w" ? -(MATE - ply) : MATE - ply;
+          return 0; // stalemate
+        }
+        orderMoves(moves);
+        if (color === "w") {
+          let best = -Infinity;
+          for (const m of moves) {
+            const u = makeSearch(m);
+            const v = searchTree(depth - 1, alpha, beta, "b", ply + 1);
+            unmakeSearch(u);
+            if (v > best) best = v;
+            if (best > alpha) alpha = best;
+            if (alpha >= beta) break;
+          }
+          return best;
+        } else {
+          let best = Infinity;
+          for (const m of moves) {
+            const u = makeSearch(m);
+            const v = searchTree(depth - 1, alpha, beta, "w", ply + 1);
+            unmakeSearch(u);
+            if (v < best) best = v;
+            if (best < beta) beta = best;
+            if (beta <= alpha) break;
+          }
+          return best;
+        }
+      }
+
+      // Pick and play Black's move at the current difficulty.
+      function aiMove() {
+        if (gameOver || turn !== "b") return;
+        const cfg = DIFF[aiLevel] || DIFF.medium;
+        const moves = genAll("b");
+        if (!moves.length) {
+          turn = "b";
+          return;
+        }
+
+        // deliberate blunder for the easier levels
+        if (cfg.blunder && Math.random() < cfg.blunder) {
+          const m = moves[(Math.random() * moves.length) | 0];
+          turn = "b";
+          doMove(m.fr, m.fc, m.r, m.c, m);
+          return;
+        }
+
+        useQuiesce = cfg.quiesce;
+        orderMoves(moves);
+        let bestScore = Infinity;
+        let best = [];
+        for (const m of moves) {
+          const u = makeSearch(m);
+          let v = searchTree(cfg.depth - 1, -Infinity, Infinity, "w", 1);
+          unmakeSearch(u);
+          if (cfg.noise) v += (Math.random() * 2 - 1) * cfg.noise;
+          if (v < bestScore - 1e-6) {
+            bestScore = v;
+            best = [m];
+          } else if (v < bestScore + 1e-6) {
+            best.push(m);
+          }
+        }
+        const mv = best[(Math.random() * best.length) | 0];
+        turn = "b"; // search left `turn` dirty — restore before committing
         doMove(mv.fr, mv.fc, mv.r, mv.c, mv);
       }
 

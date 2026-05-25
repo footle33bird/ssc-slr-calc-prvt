@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tic-Tac-Toe</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      [data-theme="dark"] {
+        --bg: #0a0a0a;
+        --surface: #111;
+        --surface2: #181818;
+        --border2: rgba(255, 255, 255, 0.14);
+        --text: #f0ede8;
+        --muted: rgba(240, 237, 232, 0.45);
+        --accent: #c8a96e;
+        --accent-dim: rgba(200, 169, 110, 0.12);
+        --accent-border: rgba(200, 169, 110, 0.3);
+        --accent-text: #0a0a0a;
+        --x: #c8a96e;
+        --o: #6ea8c8;
+        --success: #6ec88a;
+      }
+      [data-theme="light"] {
+        --bg: #f7f5f0;
+        --surface: #fff;
+        --surface2: #f0ede6;
+        --border2: rgba(0, 0, 0, 0.14);
+        --text: #1a1814;
+        --muted: rgba(26, 24, 20, 0.45);
+        --accent: #9e7a3f;
+        --accent-dim: rgba(158, 122, 63, 0.1);
+        --accent-border: rgba(158, 122, 63, 0.3);
+        --accent-text: #fff;
+        --x: #9e7a3f;
+        --o: #3f6e9e;
+        --success: #27704a;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        overflow: hidden;
+      }
+      .shell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+        padding: 16px;
+        gap: 14px;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 420px;
+        flex-shrink: 0;
+      }
+      .game-title {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 28px;
+        font-weight: 300;
+        font-style: italic;
+        color: var(--accent);
+      }
+      .mode-row {
+        display: flex;
+        gap: 6px;
+      }
+      .mode-btn {
+        padding: 4px 10px;
+        border: 1px solid var(--border2);
+        border-radius: 100px;
+        background: var(--surface);
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+      }
+      .mode-btn.active {
+        border-color: var(--accent-border);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+      .status {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .status b {
+        color: var(--text);
+      }
+      .scores {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .score {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 5px 16px;
+        text-align: center;
+        min-width: 72px;
+      }
+      .score .k {
+        font-size: 8px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .score .v {
+        font-size: 18px;
+        margin-top: 2px;
+      }
+      .board-area {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 12px;
+        cursor: pointer;
+        font-family: "Cormorant Garamond", serif;
+        font-weight: 300;
+        line-height: 1;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          transform 0.08s;
+        user-select: none;
+      }
+      .cell:hover:not(.taken) {
+        border-color: var(--accent-border);
+        background: var(--accent-dim);
+      }
+      .cell:active:not(.taken) {
+        transform: scale(0.96);
+      }
+      .cell.x {
+        color: var(--x);
+      }
+      .cell.o {
+        color: var(--o);
+      }
+      .cell.win {
+        background: rgba(110, 200, 138, 0.16);
+        border-color: var(--success);
+      }
+      .cell .mark {
+        animation: drop 0.18s ease;
+      }
+      @keyframes drop {
+        from {
+          transform: scale(0.4);
+          opacity: 0;
+        }
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 18px;
+        border-radius: 6px;
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: 1px solid;
+        transition: all 0.18s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-text);
+        font-weight: 500;
+      }
+      .btn-primary:hover {
+        opacity: 0.85;
+      }
+      .btn-ghost {
+        background: transparent;
+        border-color: var(--border2);
+        color: var(--muted);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--accent-border);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="title-row">
+        <div class="game-title">Tic-Tac-Toe</div>
+        <div class="mode-row">
+          <button class="mode-btn active" id="m-ai" onclick="setMode('ai')">
+            vs AI
+          </button>
+          <button class="mode-btn" id="m-pvp" onclick="setMode('pvp')">
+            2 Players
+          </button>
+        </div>
+      </div>
+
+      <div class="status" id="status">Your turn — you're <b>X</b></div>
+
+      <div class="scores">
+        <div class="score">
+          <div class="k" id="lblX">You (X)</div>
+          <div class="v" style="color: var(--x)" id="sX">0</div>
+        </div>
+        <div class="score">
+          <div class="k">Draws</div>
+          <div class="v" id="sD">0</div>
+        </div>
+        <div class="score">
+          <div class="k" id="lblO">AI (O)</div>
+          <div class="v" style="color: var(--o)" id="sO">0</div>
+        </div>
+      </div>
+
+      <div class="board-area">
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="newGame()">↺ New Round</button>
+        <button class="btn btn-ghost" onclick="resetScores()">Reset Score</button>
+      </div>
+    </div>
+
+    <script>
+      const WINS = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6],
+      ];
+
+      let board, turn, mode, over, scores;
+      scores = { X: 0, O: 0, D: 0 };
+
+      function setMode(m) {
+        mode = m;
+        document.getElementById("m-ai").classList.toggle("active", m === "ai");
+        document.getElementById("m-pvp").classList.toggle("active", m === "pvp");
+        document.getElementById("lblX").textContent =
+          m === "ai" ? "You (X)" : "Player X";
+        document.getElementById("lblO").textContent =
+          m === "ai" ? "AI (O)" : "Player O";
+        newGame();
+      }
+
+      function newGame() {
+        board = Array(9).fill("");
+        turn = "X";
+        over = false;
+        render();
+        setStatus(
+          mode === "ai"
+            ? 'Your turn — you\'re <b>X</b>'
+            : "<b>X</b>'s turn",
+        );
+      }
+
+      function resetScores() {
+        scores = { X: 0, O: 0, D: 0 };
+        updateScores();
+      }
+
+      function updateScores() {
+        document.getElementById("sX").textContent = scores.X;
+        document.getElementById("sO").textContent = scores.O;
+        document.getElementById("sD").textContent = scores.D;
+      }
+
+      function setStatus(html) {
+        document.getElementById("status").innerHTML = html;
+      }
+
+      function sizeBoard() {
+        const area = document.querySelector(".board-area");
+        const s = Math.max(
+          70,
+          Math.min(
+            130,
+            Math.floor(
+              (Math.min(area.clientWidth, area.clientHeight) - 16) / 3,
+            ),
+          ),
+        );
+        document.querySelectorAll(".cell").forEach((c) => {
+          c.style.width = s + "px";
+          c.style.height = s + "px";
+          c.style.fontSize = Math.round(s * 0.62) + "px";
+        });
+      }
+
+      function render(winLine) {
+        const el = document.getElementById("board");
+        el.innerHTML = "";
+        board.forEach((v, i) => {
+          const cell = document.createElement("div");
+          cell.className =
+            "cell" +
+            (v ? " taken " + v.toLowerCase() : "") +
+            (winLine && winLine.includes(i) ? " win" : "");
+          if (v) {
+            const m = document.createElement("span");
+            m.className = "mark";
+            m.textContent = v;
+            cell.appendChild(m);
+          }
+          cell.addEventListener("click", () => human(i));
+          el.appendChild(cell);
+        });
+        sizeBoard();
+      }
+
+      // ── win detection ──
+      function winnerOf(b) {
+        for (const [a, c, d] of WINS) {
+          if (b[a] && b[a] === b[c] && b[a] === b[d]) return { who: b[a], line: [a, c, d] };
+        }
+        return null;
+      }
+
+      function human(i) {
+        if (over || board[i]) return;
+        if (mode === "ai" && turn !== "X") return; // wait for AI
+        place(i, turn);
+        if (over) return;
+        if (mode === "ai" && !over) {
+          setStatus("AI is thinking…");
+          setTimeout(aiMove, 260);
+        }
+      }
+
+      function place(i, who) {
+        board[i] = who;
+        const res = winnerOf(board);
+        if (res) {
+          over = true;
+          scores[res.who]++;
+          updateScores();
+          render(res.line);
+          if (mode === "ai")
+            setStatus(
+              res.who === "X" ? "🎉 <b>You win!</b>" : "🤖 <b>AI wins</b>",
+            );
+          else setStatus("<b>" + res.who + "</b> wins!");
+          return;
+        }
+        if (board.every((c) => c)) {
+          over = true;
+          scores.D++;
+          updateScores();
+          render();
+          setStatus("It's a <b>draw</b>");
+          return;
+        }
+        turn = turn === "X" ? "O" : "X";
+        render();
+        if (mode === "pvp") setStatus("<b>" + turn + "</b>'s turn");
+        else if (turn === "X") setStatus('Your turn — you\'re <b>X</b>');
+      }
+
+      // ── unbeatable AI: perfect minimax (AI plays O) ──
+      function minimax(b, player) {
+        const res = winnerOf(b);
+        if (res) return res.who === "O" ? { score: 10 } : { score: -10 };
+        const empties = [];
+        for (let i = 0; i < 9; i++) if (!b[i]) empties.push(i);
+        if (!empties.length) return { score: 0 };
+
+        let best =
+          player === "O"
+            ? { score: -Infinity }
+            : { score: Infinity };
+        for (const i of empties) {
+          b[i] = player;
+          const r = minimax(b, player === "O" ? "X" : "O");
+          b[i] = "";
+          // prefer faster wins / slower losses by nudging with depth via empties length
+          const score = r.score;
+          if (player === "O") {
+            if (score > best.score) best = { score, move: i };
+          } else {
+            if (score < best.score) best = { score, move: i };
+          }
+        }
+        return best;
+      }
+
+      function aiMove() {
+        if (over || turn !== "O") return;
+        const { move } = minimax(board.slice(), "O");
+        place(move, "O");
+      }
+
+      window.addEventListener("resize", sizeBoard);
+
+      try {
+        const t =
+          window.parent.document.documentElement.getAttribute("data-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+
+      mode = "ai";
+      updateScores();
+      newGame();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nonograms</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      [data-theme="dark"] {
+        --bg: #0a0a0a;
+        --surface: #111;
+        --surface2: #181818;
+        --border: rgba(255, 255, 255, 0.1);
+        --border2: rgba(255, 255, 255, 0.18);
+        --text: #f0ede8;
+        --muted: rgba(240, 237, 232, 0.45);
+        --accent: #c8a96e;
+        --accent-dim: rgba(200, 169, 110, 0.12);
+        --accent-border: rgba(200, 169, 110, 0.3);
+        --accent-text: #0a0a0a;
+        --fill: #c8a96e;
+        --success: #6ec88a;
+      }
+      [data-theme="light"] {
+        --bg: #f7f5f0;
+        --surface: #fff;
+        --surface2: #f0ede6;
+        --border: rgba(0, 0, 0, 0.12);
+        --border2: rgba(0, 0, 0, 0.2);
+        --text: #1a1814;
+        --muted: rgba(26, 24, 20, 0.45);
+        --accent: #9e7a3f;
+        --accent-dim: rgba(158, 122, 63, 0.1);
+        --accent-border: rgba(158, 122, 63, 0.3);
+        --accent-text: #fff;
+        --fill: #4a3a1f;
+        --success: #27704a;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        overflow: hidden;
+      }
+      .shell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+        padding: 12px;
+        gap: 10px;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 640px;
+        flex-shrink: 0;
+      }
+      .game-title {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 26px;
+        font-weight: 300;
+        font-style: italic;
+        color: var(--accent);
+      }
+      .mode-row {
+        display: flex;
+        gap: 6px;
+      }
+      .mode-btn {
+        padding: 4px 10px;
+        border: 1px solid var(--border2);
+        border-radius: 100px;
+        background: var(--surface);
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+      }
+      .mode-btn.active {
+        border-color: var(--accent-border);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+      .status {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 7px;
+        padding: 6px 18px;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .status b {
+        color: var(--text);
+      }
+      .status.solved b {
+        color: var(--success);
+      }
+
+      .board-area {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        overflow: auto;
+      }
+      .puzzle {
+        display: grid;
+        grid-template-columns: auto auto;
+        grid-template-rows: auto auto;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 6px;
+      }
+      .corner {
+        grid-column: 1;
+        grid-row: 1;
+      }
+      .col-clues {
+        grid-column: 2;
+        grid-row: 1;
+        display: grid;
+        align-items: end;
+      }
+      .row-clues {
+        grid-column: 1;
+        grid-row: 2;
+        display: grid;
+        justify-items: end;
+      }
+      .grid {
+        grid-column: 2;
+        grid-row: 2;
+        display: grid;
+        gap: 0;
+      }
+      .col-clue {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 1px;
+        color: var(--muted);
+        padding-bottom: 3px;
+      }
+      .row-clue {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+        color: var(--muted);
+        padding-right: 5px;
+      }
+      .clue-n.done {
+        color: var(--accent);
+        opacity: 0.5;
+      }
+      .cell {
+        border: 1px solid var(--border);
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+      }
+      /* thicker lines every 5 cells for readability */
+      .cell.b-left {
+        border-left-color: var(--border2);
+      }
+      .cell.b-top {
+        border-top-color: var(--border2);
+      }
+      .cell.fill {
+        background: var(--fill);
+      }
+      .cell.mark::after {
+        content: "✕";
+        color: var(--muted);
+        font-size: 0.7em;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: 1px solid;
+        transition: all 0.18s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-text);
+        font-weight: 500;
+      }
+      .btn-primary:hover {
+        opacity: 0.85;
+      }
+      .btn-ghost {
+        background: transparent;
+        border-color: var(--border2);
+        color: var(--muted);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--accent-border);
+      }
+      .btn-toggle.active {
+        background: var(--accent-dim);
+        border-color: var(--accent-border);
+        color: var(--accent);
+      }
+      .hint {
+        font-size: 9px;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+        text-align: center;
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="title-row">
+        <div class="game-title">Nonograms</div>
+        <div class="mode-row">
+          <button class="mode-btn" data-n="5" onclick="setSize(5)">5×5</button>
+          <button class="mode-btn active" data-n="10" onclick="setSize(10)">
+            10×10
+          </button>
+          <button class="mode-btn" data-n="15" onclick="setSize(15)">
+            15×15
+          </button>
+        </div>
+      </div>
+
+      <div class="status" id="status">Fill cells to match the number clues</div>
+
+      <div class="board-area">
+        <div class="puzzle" id="puzzle">
+          <div class="corner"></div>
+          <div class="col-clues" id="colClues"></div>
+          <div class="row-clues" id="rowClues"></div>
+          <div class="grid" id="grid"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-toggle active" id="fillBtn" onclick="setTool('fill')">
+          ◼ Fill
+        </button>
+        <button class="btn btn-toggle" id="markBtn" onclick="setTool('mark')">
+          ✕ Mark
+        </button>
+        <button class="btn btn-ghost" onclick="newGame()">↻ New</button>
+        <button class="btn btn-ghost" onclick="clearBoard()">Clear</button>
+      </div>
+      <div class="hint">
+        Tip: right-click toggles ✕ marks · marks are just notes, only filled
+        cells are checked
+      </div>
+    </div>
+
+    <script>
+      let N = 10;
+      let solution = []; // target boolean grid (for generating clues only)
+      let rowClues = [];
+      let colClues = [];
+      let state = []; // 0 empty, 1 filled, 2 marked
+      let tool = "fill";
+      let solved = false;
+      let painting = null; // value being applied during a drag
+      let cellEls = []; // DOM refs for targeted updates
+      let rowClueEls = [];
+      let colClueEls = [];
+
+      function setSize(n) {
+        N = n;
+        document.querySelectorAll(".mode-btn").forEach((b) =>
+          b.classList.toggle("active", +b.dataset.n === n),
+        );
+        newGame();
+      }
+
+      function setTool(t) {
+        tool = t;
+        document.getElementById("fillBtn").classList.toggle("active", t === "fill");
+        document.getElementById("markBtn").classList.toggle("active", t === "mark");
+      }
+
+      // run-length clue for a line of booleans
+      function lineClue(line) {
+        const out = [];
+        let run = 0;
+        for (const v of line) {
+          if (v) run++;
+          else if (run) {
+            out.push(run);
+            run = 0;
+          }
+        }
+        if (run) out.push(run);
+        return out.length ? out : [0];
+      }
+
+      function genPuzzle() {
+        // random solvable-ish pattern; clues are derived from it.
+        do {
+          solution = [];
+          for (let r = 0; r < N; r++) {
+            const row = [];
+            for (let c = 0; c < N; c++) row.push(Math.random() < 0.55 ? 1 : 0);
+            solution.push(row);
+          }
+        } while (solution.flat().every((v) => v === 0));
+
+        rowClues = solution.map((row) => lineClue(row));
+        colClues = [];
+        for (let c = 0; c < N; c++) {
+          const col = [];
+          for (let r = 0; r < N; r++) col.push(solution[r][c]);
+          colClues.push(lineClue(col));
+        }
+      }
+
+      function newGame() {
+        solved = false;
+        genPuzzle();
+        state = Array.from({ length: N }, () => Array(N).fill(0));
+        render();
+        setStatus("Fill cells to match the number clues", false);
+      }
+
+      function clearBoard() {
+        if (solved) return;
+        state = Array.from({ length: N }, () => Array(N).fill(0));
+        render();
+      }
+
+      function setStatus(html, isSolved) {
+        const el = document.getElementById("status");
+        el.innerHTML = html;
+        el.classList.toggle("solved", !!isSolved);
+      }
+
+      function calcCell() {
+        const area = document.querySelector(".board-area");
+        const maxRowClue = Math.max(1, ...rowClues.map((c) => c.length));
+        const maxColClue = Math.max(1, ...colClues.map((c) => c.length));
+        const availW = area.clientWidth - 24;
+        const availH = area.clientHeight - 24;
+        // clue bands scale with cell size
+        const byW = availW / (N + maxRowClue * 0.62 + 0.5);
+        const byH = availH / (N + maxColClue * 0.78 + 0.5);
+        return Math.max(16, Math.min(40, Math.floor(Math.min(byW, byH))));
+      }
+
+      function render() {
+        const cell = calcCell();
+        const font = Math.max(8, Math.round(cell * 0.42));
+        const maxRowClue = Math.max(1, ...rowClues.map((c) => c.length));
+        const maxColClue = Math.max(1, ...colClues.map((c) => c.length));
+
+        const colCluesEl = document.getElementById("colClues");
+        const rowCluesEl = document.getElementById("rowClues");
+        const gridEl = document.getElementById("grid");
+        colCluesEl.innerHTML = "";
+        rowCluesEl.innerHTML = "";
+        gridEl.innerHTML = "";
+
+        colCluesEl.style.gridTemplateColumns = `repeat(${N}, ${cell}px)`;
+        colCluesEl.style.height = Math.ceil(maxColClue * font * 1.25 + 6) + "px";
+        rowCluesEl.style.gridTemplateRows = `repeat(${N}, ${cell}px)`;
+        rowCluesEl.style.width =
+          Math.ceil(maxRowClue * (font + 5) + 6) + "px";
+        gridEl.style.gridTemplateColumns = `repeat(${N}, ${cell}px)`;
+        gridEl.style.gridTemplateRows = `repeat(${N}, ${cell}px)`;
+
+        // column clues
+        colClueEls = [];
+        for (let c = 0; c < N; c++) {
+          const d = document.createElement("div");
+          d.className = "col-clue";
+          d.style.fontSize = font + "px";
+          colClues[c].forEach((n) => {
+            const s = document.createElement("span");
+            s.className = "clue-n";
+            s.textContent = n;
+            d.appendChild(s);
+          });
+          colCluesEl.appendChild(d);
+          colClueEls.push(d);
+        }
+
+        // row clues
+        rowClueEls = [];
+        for (let r = 0; r < N; r++) {
+          const d = document.createElement("div");
+          d.className = "row-clue";
+          d.style.fontSize = font + "px";
+          rowClues[r].forEach((n) => {
+            const s = document.createElement("span");
+            s.className = "clue-n";
+            s.textContent = n;
+            d.appendChild(s);
+          });
+          rowCluesEl.appendChild(d);
+          rowClueEls.push(d);
+        }
+
+        // cells
+        cellEls = Array.from({ length: N }, () => Array(N));
+        for (let r = 0; r < N; r++) {
+          for (let c = 0; c < N; c++) {
+            const el = document.createElement("div");
+            applyCellClass(el, r, c);
+            el.style.fontSize = Math.round(cell * 0.6) + "px";
+
+            el.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              if (solved) return;
+              const useTool = e.button === 2 ? "mark" : tool;
+              applyTool(r, c, useTool);
+            });
+            el.addEventListener("mouseenter", () => {
+              if (painting !== null && !solved) paintCell(r, c);
+            });
+            el.addEventListener("contextmenu", (e) => e.preventDefault());
+            gridEl.appendChild(el);
+            cellEls[r][c] = el;
+          }
+        }
+
+        // initial clue done-states
+        for (let r = 0; r < N; r++) markClueDone(rowClueEls[r], lineSolvedRow(r));
+        for (let c = 0; c < N; c++) markClueDone(colClueEls[c], lineSolvedCol(c));
+      }
+
+      function applyCellClass(el, r, c) {
+        let cls = "cell";
+        if (c % 5 === 0 && c !== 0) cls += " b-left";
+        if (r % 5 === 0 && r !== 0) cls += " b-top";
+        if (state[r][c] === 1) cls += " fill";
+        else if (state[r][c] === 2) cls += " mark";
+        el.className = cls;
+      }
+
+      function markClueDone(el, done) {
+        el.querySelectorAll(".clue-n").forEach((s) =>
+          s.classList.toggle("done", done),
+        );
+      }
+
+      // apply on initial click; sets `painting` to the value we're laying down
+      function applyTool(r, c, useTool) {
+        const target = useTool === "mark" ? 2 : 1;
+        // toggle off if same value already there
+        painting = state[r][c] === target ? 0 : target;
+        setCell(r, c, painting);
+      }
+
+      function paintCell(r, c) {
+        if (state[r][c] === painting) return;
+        setCell(r, c, painting);
+      }
+
+      // targeted update of one cell + the clue done-flags for its line
+      function setCell(r, c, value) {
+        state[r][c] = value;
+        applyCellClass(cellEls[r][c], r, c);
+        markClueDone(rowClueEls[r], lineSolvedRow(r));
+        markClueDone(colClueEls[c], lineSolvedCol(c));
+        checkSolved();
+      }
+
+      function lineSolvedRow(r) {
+        const filled = state[r].map((v) => (v === 1 ? 1 : 0));
+        return arrEq(lineClue(filled), rowClues[r]);
+      }
+      function lineSolvedCol(c) {
+        const col = [];
+        for (let r = 0; r < N; r++) col.push(state[r][c] === 1 ? 1 : 0);
+        return arrEq(lineClue(col), colClues[c]);
+      }
+      function arrEq(a, b) {
+        return a.length === b.length && a.every((v, i) => v === b[i]);
+      }
+
+      function checkSolved() {
+        for (let r = 0; r < N; r++) if (!lineSolvedRow(r)) return;
+        for (let c = 0; c < N; c++) if (!lineSolvedCol(c)) return;
+        solved = true;
+        painting = null;
+        render();
+        setStatus("✓ <b>Solved!</b> Press New for another", true);
+      }
+
+      window.addEventListener("mouseup", () => (painting = null));
+      window.addEventListener("resize", () => render());
+
+      try {
+        const t =
+          window.parent.document.documentElement.getAttribute("data-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+
+      newGame();
+    </script>
+  </body>
+</html>

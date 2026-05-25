@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slot Machine</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      [data-theme="dark"] {
+        --bg: #0a0a0a;
+        --surface: #111;
+        --surface2: #181818;
+        --border2: rgba(255, 255, 255, 0.14);
+        --text: #f0ede8;
+        --muted: rgba(240, 237, 232, 0.45);
+        --accent: #c8a96e;
+        --accent-dim: rgba(200, 169, 110, 0.12);
+        --accent-border: rgba(200, 169, 110, 0.3);
+        --accent-text: #0a0a0a;
+        --reel-bg: #1a1408;
+        --success: #6ec88a;
+        --danger: #e06060;
+      }
+      [data-theme="light"] {
+        --bg: #f7f5f0;
+        --surface: #fff;
+        --surface2: #f0ede6;
+        --border2: rgba(0, 0, 0, 0.14);
+        --text: #1a1814;
+        --muted: rgba(26, 24, 20, 0.45);
+        --accent: #9e7a3f;
+        --accent-dim: rgba(158, 122, 63, 0.1);
+        --accent-border: rgba(158, 122, 63, 0.3);
+        --accent-text: #fff;
+        --reel-bg: #f3ead4;
+        --success: #27704a;
+        --danger: #c0392b;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        overflow: hidden;
+      }
+      .shell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+        padding: 16px;
+        gap: 14px;
+      }
+      .game-title {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 30px;
+        font-weight: 300;
+        font-style: italic;
+        color: var(--accent);
+        flex-shrink: 0;
+      }
+      .credits {
+        display: flex;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      .chip {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 6px 18px;
+        text-align: center;
+        min-width: 96px;
+      }
+      .chip .k {
+        font-size: 8px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .chip .v {
+        font-size: 20px;
+        margin-top: 2px;
+        color: var(--accent);
+      }
+
+      .machine {
+        background: var(--surface);
+        border: 1px solid var(--accent-border);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 0 40px rgba(200, 169, 110, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        align-items: center;
+      }
+      .reels {
+        display: flex;
+        gap: 10px;
+      }
+      .reel {
+        width: 84px;
+        height: 110px;
+        background: var(--reel-bg);
+        border: 2px solid var(--accent-border);
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+      }
+      .reel-strip {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .sym {
+        height: 110px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 58px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .reel::before,
+      .reel::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 22px;
+        z-index: 2;
+        pointer-events: none;
+      }
+      .reel::before {
+        top: 0;
+        background: linear-gradient(var(--reel-bg), transparent);
+      }
+      .reel::after {
+        bottom: 0;
+        background: linear-gradient(transparent, var(--reel-bg));
+      }
+      .reel.win {
+        border-color: var(--success);
+        box-shadow: 0 0 16px rgba(110, 200, 138, 0.5);
+      }
+
+      .result {
+        height: 20px;
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .result.win {
+        color: var(--success);
+      }
+      .result.lose {
+        color: var(--danger);
+      }
+
+      .bet-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .bet-label {
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .bet-btns {
+        display: flex;
+        gap: 4px;
+      }
+      .bet-btn {
+        padding: 4px 10px;
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        background: var(--surface2);
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .bet-btn.active {
+        border-color: var(--accent-border);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 11px 26px;
+        border-radius: 8px;
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: 1px solid;
+        transition: all 0.18s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-text);
+        font-weight: 500;
+      }
+      .btn-primary:hover:not(:disabled) {
+        opacity: 0.85;
+      }
+      .btn-primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn-ghost {
+        background: transparent;
+        border-color: var(--border2);
+        color: var(--muted);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--accent-border);
+      }
+      .paytable {
+        font-size: 9px;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+        text-align: center;
+        line-height: 1.7;
+        flex-shrink: 0;
+        max-width: 360px;
+      }
+      .paytable b {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="game-title">Lucky Sevens</div>
+
+      <div class="credits">
+        <div class="chip">
+          <div class="k">Credits</div>
+          <div class="v" id="credits">100</div>
+        </div>
+        <div class="chip">
+          <div class="k">Bet</div>
+          <div class="v" id="betView">5</div>
+        </div>
+        <div class="chip">
+          <div class="k">Last Win</div>
+          <div class="v" id="lastWin">0</div>
+        </div>
+      </div>
+
+      <div class="machine">
+        <div class="reels" id="reels">
+          <div class="reel"><div class="reel-strip"></div></div>
+          <div class="reel"><div class="reel-strip"></div></div>
+          <div class="reel"><div class="reel-strip"></div></div>
+        </div>
+        <div class="result" id="result">Pull the lever!</div>
+        <div class="bet-row">
+          <span class="bet-label">Bet</span>
+          <div class="bet-btns" id="betBtns">
+            <button class="bet-btn" data-bet="1">1</button>
+            <button class="bet-btn active" data-bet="5">5</button>
+            <button class="bet-btn" data-bet="10">10</button>
+            <button class="bet-btn" data-bet="25">25</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" id="spinBtn" onclick="spin()">
+          🎰 Spin
+        </button>
+        <button class="btn btn-ghost" onclick="resetGame()">Reset</button>
+      </div>
+
+      <div class="paytable">
+        <b>7️⃣7️⃣7️⃣</b> ×50 &nbsp;·&nbsp; <b>any 3 match</b> ×12 &nbsp;·&nbsp;
+        <b>3 fruits/bells</b> bonus &nbsp;·&nbsp; <b>2 match</b> ×2<br />
+        any two 7️⃣ ×3 · out of credits? press Reset
+      </div>
+    </div>
+
+    <script>
+      // symbol pool — order also used to build the spinning strip
+      const SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "🍉", "💎", "7️⃣"];
+      // weights: rarer symbols (diamond, seven) appear less often
+      const WEIGHTS = [10, 10, 7, 6, 8, 3, 2];
+
+      let credits = 100;
+      let bet = 5;
+      let spinning = false;
+
+      const els = {
+        credits: document.getElementById("credits"),
+        betView: document.getElementById("betView"),
+        lastWin: document.getElementById("lastWin"),
+        result: document.getElementById("result"),
+        spinBtn: document.getElementById("spinBtn"),
+      };
+      const reels = Array.from(document.querySelectorAll(".reel"));
+      const strips = reels.map((r) => r.querySelector(".reel-strip"));
+
+      function weightedSym() {
+        const total = WEIGHTS.reduce((a, b) => a + b, 0);
+        let x = Math.random() * total;
+        for (let i = 0; i < SYMBOLS.length; i++) {
+          if ((x -= WEIGHTS[i]) < 0) return SYMBOLS[i];
+        }
+        return SYMBOLS[0];
+      }
+
+      // build a long strip ending on `final`, for the spin animation
+      function buildStrip(final) {
+        const seq = [];
+        const n = 24;
+        for (let i = 0; i < n; i++) seq.push(weightedSym());
+        seq.push(final); // landing symbol at the bottom-most shown
+        return seq;
+      }
+
+      function setBet(b) {
+        if (spinning) return;
+        bet = b;
+        els.betView.textContent = b;
+        document
+          .querySelectorAll(".bet-btn")
+          .forEach((x) => x.classList.toggle("active", +x.dataset.bet === b));
+      }
+
+      document.querySelectorAll(".bet-btn").forEach((b) =>
+        b.addEventListener("click", () => setBet(+b.dataset.bet)),
+      );
+
+      function renderStatic(symbols) {
+        symbols.forEach((s, i) => {
+          strips[i].style.transition = "none";
+          strips[i].style.transform = "translateY(0)";
+          strips[i].innerHTML = `<div class="sym">${s}</div>`;
+        });
+      }
+
+      function payout(s) {
+        const [a, b, c] = s;
+        const all = a === b && b === c;
+        if (all) {
+          if (a === "7️⃣") return { mult: 50, label: "JACKPOT! 777" };
+          if (a === "💎") return { mult: 25, label: "Diamonds!" };
+          if (a === "⭐" || a === "🔔") return { mult: 15, label: "Three of a kind!" };
+          return { mult: 12, label: "Three of a kind!" };
+        }
+        // two sevens anywhere
+        const sevens = s.filter((x) => x === "7️⃣").length;
+        if (sevens === 2) return { mult: 3, label: "Two 7s" };
+        // any pair
+        if (a === b || b === c || a === c) return { mult: 2, label: "Pair" };
+        if (sevens === 1) return { mult: 1, label: "One 7 — push" };
+        return { mult: 0, label: "No win" };
+      }
+
+      function spin() {
+        if (spinning) return;
+        if (credits < bet) {
+          flash(els.result, "Not enough credits — press Reset", "lose");
+          return;
+        }
+        spinning = true;
+        els.spinBtn.disabled = true;
+        credits -= bet;
+        els.credits.textContent = credits;
+        els.result.className = "result";
+        els.result.textContent = "Spinning…";
+        reels.forEach((r) => r.classList.remove("win"));
+
+        const finals = [weightedSym(), weightedSym(), weightedSym()];
+
+        finals.forEach((final, i) => {
+          const seq = buildStrip(final);
+          const strip = strips[i];
+          // lay out the full strip stacked
+          strip.style.transition = "none";
+          strip.innerHTML = seq.map((s) => `<div class="sym">${s}</div>`).join("");
+          strip.style.transform = "translateY(0)";
+          // distance to scroll so the final symbol lands in view
+          const dist = (seq.length - 1) * 110;
+          // force reflow then animate, staggered per reel
+          void strip.offsetHeight;
+          const dur = 1.1 + i * 0.45;
+          strip.style.transition = `transform ${dur}s cubic-bezier(0.15, 0.85, 0.2, 1)`;
+          strip.style.transform = `translateY(${-dist}px)`;
+        });
+
+        const totalDur = (1.1 + 2 * 0.45) * 1000 + 120;
+        setTimeout(() => finishSpin(finals), totalDur);
+      }
+
+      function finishSpin(finals) {
+        // settle: show only the landing symbol cleanly
+        renderStatic(finals);
+        const res = payout(finals);
+        const won = bet * res.mult;
+        els.lastWin.textContent = won;
+        if (res.mult > 0) {
+          credits += won;
+          els.credits.textContent = credits;
+          flash(
+            els.result,
+            res.label + " +" + won,
+            res.mult >= 12 ? "win" : "win",
+          );
+          if (finals[0] === finals[1] && finals[1] === finals[2])
+            reels.forEach((r) => r.classList.add("win"));
+        } else {
+          flash(els.result, res.label, "lose");
+        }
+        spinning = false;
+        els.spinBtn.disabled = false;
+      }
+
+      function flash(el, msg, cls) {
+        el.className = "result " + (cls || "");
+        el.textContent = msg;
+      }
+
+      function resetGame() {
+        if (spinning) return;
+        credits = 100;
+        els.credits.textContent = credits;
+        els.lastWin.textContent = 0;
+        flash(els.result, "Pull the lever!", "");
+      }
+
+      // theme sync with launcher
+      try {
+        const t =
+          window.parent.document.documentElement.getAttribute("data-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+
+      // initial faces
+      renderStatic([SYMBOLS[0], SYMBOLS[2], SYMBOLS[6]]);
+    </script>
+  </body>
+</html>

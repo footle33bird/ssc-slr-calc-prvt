@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retro Arcade</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0a0a0a;
+        --text: #f0ede8;
+        --muted: rgba(240, 237, 232, 0.45);
+        --accent: #c8a96e;
+        --accent-border: rgba(200, 169, 110, 0.3);
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #bar {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--accent-border);
+        background: linear-gradient(180deg, #161616, #0a0a0a);
+      }
+      #title {
+        font-size: 13px;
+        letter-spacing: 0.28em;
+        font-weight: 500;
+        color: var(--accent);
+        text-transform: uppercase;
+      }
+      #title span {
+        color: var(--muted);
+        letter-spacing: 0.12em;
+        font-size: 10px;
+        margin-left: 6px;
+      }
+      .note {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+      #stage {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        background: #000;
+      }
+      #frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+      #fallback {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        text-align: center;
+        padding: 24px;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        line-height: 1.7;
+      }
+      @media (max-width: 720px) {
+        .note {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bar">
+      <div id="title">Loading…</div>
+      <div class="note">Click the screen, then press ▶ to start</div>
+    </div>
+    <div id="stage">
+      <div id="fallback">
+        <div>Couldn't load this game.</div>
+        <div>An internet connection is required (game runs on archive.org).</div>
+      </div>
+    </div>
+
+    <script>
+      // sync theme with the launcher
+      try {
+        const t =
+          window.parent.document.documentElement.getAttribute("data-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id") || "";
+      const name = params.get("name") || "Retro Game";
+      const year = params.get("year") || "";
+
+      document.getElementById("title").innerHTML =
+        name + (year ? ' <span>· ' + year + "</span>" : "");
+
+      const stage = document.getElementById("stage");
+      // allow only the expected archive identifier shape
+      if (/^[A-Za-z0-9_.\-]+$/.test(id)) {
+        const f = document.createElement("iframe");
+        f.id = "frame";
+        f.src = "https://archive.org/embed/" + id;
+        f.setAttribute("allow", "fullscreen; autoplay; gamepad");
+        f.setAttribute("allowfullscreen", "");
+        f.setAttribute("scrolling", "no");
+        stage.insertBefore(f, stage.firstChild);
+      } else {
+        document.getElementById("fallback").style.display = "flex";
+      }
+    </script>
+  </body>
+</html>

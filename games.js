@@ -71,11 +71,11 @@
 
     /* dropdown list */
     #mg-games-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      width: 168px;
-      padding: 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px 5px;
+      width: 320px;
+      padding: 8px;
       background: var(--surface, #111);
       border: 1px solid var(--border2, rgba(255,255,255,0.12));
       border-radius: 12px;
@@ -85,6 +85,35 @@
       transform: translateY(-8px) scale(0.97);
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22,1,0.36,1);
+      max-height: calc(100vh - 90px);
+      overflow-y: auto;
+    }
+
+    /* category header — spans both columns */
+    .mg-cat {
+      grid-column: 1 / -1;
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted, rgba(240,237,232,0.4));
+      padding: 7px 8px 3px;
+      border-top: 1px solid var(--border, rgba(255,255,255,0.07));
+      margin-top: 3px;
+    }
+    .mg-cat:first-child {
+      border-top: none;
+      margin-top: 0;
+    }
+
+    /* category divider inside the mobile picker sheet */
+    .mg-picker-cat {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted, rgba(240,237,232,0.45));
+      padding: 14px 4px 4px;
     }
     #mg-panel.open #mg-games-list {
       opacity: 1;
@@ -95,15 +124,16 @@
     .mg-panel-btn {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 9px;
       width: 100%;
-      padding: 10px 12px;
+      padding: 8px 9px;
       background: transparent;
       border: 1px solid transparent;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.16s ease;
       white-space: nowrap;
+      overflow: hidden;
       user-select: none;
       text-decoration: none;
       text-align: left;
@@ -121,10 +151,12 @@
 
     .mg-panel-name {
       font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.12em;
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--accent, #c8a96e);
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* ── OVERLAY ── */
@@ -319,6 +351,8 @@
       padding: 12px 20px 40px;
       transform: translateY(100%);
       transition: transform 0.32s cubic-bezier(0.22,1,0.36,1);
+      max-height: 82vh;
+      overflow-y: auto;
     }
     #mg-picker.open { transform: translateY(0); }
 
@@ -394,6 +428,17 @@
     <div class="mg-picker-row" data-game="chess"><span class="mg-picker-icon">♟</span><span class="mg-picker-name">Chess</span></div>
     <div class="mg-picker-row" data-game="wordle"><span class="mg-picker-icon">🔤</span><span class="mg-picker-name">Wordle</span></div>
     <div class="mg-picker-row" data-game="minesweeper"><span class="mg-picker-icon">💣</span><span class="mg-picker-name">Minesweeper</span></div>
+    <div class="mg-picker-row" data-game="memory"><span class="mg-picker-icon">🧠</span><span class="mg-picker-name">Memory</span></div>
+    <div class="mg-picker-row" data-game="tictactoe"><span class="mg-picker-icon">⭕</span><span class="mg-picker-name">Tic-Tac-Toe</span></div>
+    <div class="mg-picker-row" data-game="nonograms"><span class="mg-picker-icon">🧩</span><span class="mg-picker-name">Nonograms</span></div>
+    <div class="mg-picker-row" data-game="slots"><span class="mg-picker-icon">🎰</span><span class="mg-picker-name">Slots</span></div>
+    <div class="mg-picker-cat">Retro · Emulated</div>
+    <div class="mg-picker-row" data-game="doom"><span class="mg-picker-icon">👹</span><span class="mg-picker-name">DOOM</span></div>
+    <div class="mg-picker-row" data-game="pacman"><span class="mg-picker-icon">🟡</span><span class="mg-picker-name">Pac-Man</span></div>
+    <div class="mg-picker-row" data-game="dkong"><span class="mg-picker-icon">🦍</span><span class="mg-picker-name">Donkey Kong</span></div>
+    <div class="mg-picker-row" data-game="pop"><span class="mg-picker-icon">🗡️</span><span class="mg-picker-name">Prince of Persia</span></div>
+    <div class="mg-picker-row" data-game="simcity"><span class="mg-picker-icon">🏙️</span><span class="mg-picker-name">SimCity</span></div>
+    <div class="mg-picker-row" data-game="oregon"><span class="mg-picker-icon">🐂</span><span class="mg-picker-name">Oregon Trail</span></div>
   `;
   document.body.appendChild(picker);
 
@@ -426,6 +471,7 @@
       <span class="mg-burger-label">Games</span>
     </button>
     <div id="mg-games-list">
+      <div class="mg-cat">Classics &amp; Puzzles</div>
       <button class="mg-panel-btn" onclick="window.mgOpen('snake')" title="Snake">
         <span class="mg-panel-icon">🐍</span>
         <span class="mg-panel-name">Snake</span>
@@ -453,6 +499,48 @@
       <button class="mg-panel-btn" onclick="window.mgOpen('minesweeper')" title="Minesweeper">
         <span class="mg-panel-icon">💣</span>
         <span class="mg-panel-name">Minesweeper</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('memory')" title="Memory">
+        <span class="mg-panel-icon">🧠</span>
+        <span class="mg-panel-name">Memory</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('tictactoe')" title="Tic-Tac-Toe">
+        <span class="mg-panel-icon">⭕</span>
+        <span class="mg-panel-name">Tic-Tac-Toe</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('nonograms')" title="Nonograms">
+        <span class="mg-panel-icon">🧩</span>
+        <span class="mg-panel-name">Nonograms</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('slots')" title="Slots">
+        <span class="mg-panel-icon">🎰</span>
+        <span class="mg-panel-name">Slots</span>
+      </button>
+
+      <div class="mg-cat">Retro · Emulated</div>
+      <button class="mg-panel-btn" onclick="window.mgOpen('doom')" title="DOOM">
+        <span class="mg-panel-icon">👹</span>
+        <span class="mg-panel-name">DOOM</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('pacman')" title="Pac-Man">
+        <span class="mg-panel-icon">🟡</span>
+        <span class="mg-panel-name">Pac-Man</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('dkong')" title="Donkey Kong">
+        <span class="mg-panel-icon">🦍</span>
+        <span class="mg-panel-name">Donkey Kong</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('pop')" title="Prince of Persia">
+        <span class="mg-panel-icon">🗡️</span>
+        <span class="mg-panel-name">Prince of Persia</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('simcity')" title="SimCity">
+        <span class="mg-panel-icon">🏙️</span>
+        <span class="mg-panel-name">SimCity</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('oregon')" title="Oregon Trail">
+        <span class="mg-panel-icon">🐂</span>
+        <span class="mg-panel-name">Oregon Trail</span>
       </button>
     </div>
   `;
@@ -523,6 +611,32 @@
     tetris: { icon: "🟧", name: "Tetris", file: "tetris.html" },
     wordle: { icon: "🔤", name: "Wordle", file: "wordle.html" },
     minesweeper: { icon: "💣", name: "Minesweeper", file: "minesweeper.html" },
+    memory: { icon: "🧠", name: "Memory", file: "memory.html" },
+    tictactoe: { icon: "⭕", name: "Tic-Tac-Toe", file: "tictactoe.html" },
+    nonograms: { icon: "🧩", name: "Nonograms", file: "nonograms.html" },
+    slots: { icon: "🎰", name: "Slots", file: "slots.html" },
+    // ── Retro / emulated (run via the Internet Archive) ──
+    doom: { icon: "👹", name: "DOOM", file: "doom.html", retro: true },
+    pacman: {
+      icon: "🟡", name: "Pac-Man", retro: true,
+      file: "retro.html?id=msdos_Pac-Man_1983&name=Pac-Man&year=1983",
+    },
+    dkong: {
+      icon: "🦍", name: "Donkey Kong", retro: true,
+      file: "retro.html?id=msdos_Donkey_Kong_1983&name=Donkey%20Kong&year=1983",
+    },
+    pop: {
+      icon: "🗡️", name: "Prince of Persia", retro: true,
+      file: "retro.html?id=msdos_Prince_of_Persia_1990&name=Prince%20of%20Persia&year=1990",
+    },
+    simcity: {
+      icon: "🏙️", name: "SimCity", retro: true,
+      file: "retro.html?id=msdos_SimCity_1989&name=SimCity&year=1989",
+    },
+    oregon: {
+      icon: "🐂", name: "Oregon Trail", retro: true,
+      file: "retro.html?id=msdos_Oregon_Trail_The_1990&name=Oregon%20Trail&year=1990",
+    },
   };
 
   window.mgOpen = function (game) {
@@ -532,8 +646,10 @@
     frame.src = g.file;
     overlay.classList.add("open");
     document.body.style.overflow = "hidden";
-    // auto-fullscreen on small screens
-    if (window.innerWidth <= 860 && !isFullscreen) window.mgToggleFull();
+    // auto-fullscreen on small screens, or for retro/emulated games
+    // (they need the room to scale up)
+    if ((window.innerWidth <= 860 || g.retro) && !isFullscreen)
+      window.mgToggleFull();
     showToast(g.icon + " " + g.name + " — tap ✕ to close");
   };
 

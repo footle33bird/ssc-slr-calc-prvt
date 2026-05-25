@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DOOM (1993)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0a0a0a;
+        --text: #f0ede8;
+        --muted: rgba(240, 237, 232, 0.45);
+        --accent: #c8a96e;
+        --accent-border: rgba(200, 169, 110, 0.3);
+        --danger: #e06060;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #bar {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--accent-border);
+        background: linear-gradient(180deg, #1a0f0f, #0a0a0a);
+      }
+      #title {
+        font-size: 13px;
+        letter-spacing: 0.32em;
+        font-weight: 500;
+        color: var(--danger);
+        text-transform: uppercase;
+        text-shadow: 0 0 10px rgba(224, 96, 96, 0.4);
+      }
+      #title span {
+        color: var(--muted);
+        letter-spacing: 0.12em;
+        font-size: 10px;
+        margin-left: 6px;
+      }
+      .keys {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+      .keys b {
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      #stage {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        background: #000;
+      }
+      #doom-frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+
+      @media (max-width: 720px) {
+        .keys {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bar">
+      <div id="title">DOOM <span>shareware · 1993</span></div>
+      <div class="keys">
+        <b>↑↓←→</b> move &nbsp; <b>Ctrl</b> fire &nbsp; <b>Space</b> use/door
+        &nbsp; <b>Alt</b> strafe &nbsp; <b>Esc</b> menu
+      </div>
+    </div>
+
+    <div id="stage">
+      <!-- Full emulated DOOM 1993, served & run by the Internet Archive.
+           Click the screen, then the play (▶) button to start. -->
+      <iframe
+        id="doom-frame"
+        src="https://archive.org/embed/DoomsharewareEpisode"
+        allow="fullscreen; autoplay; gamepad"
+        allowfullscreen
+        scrolling="no"
+      ></iframe>
+    </div>
+  </body>
+</html>

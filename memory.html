@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Memory</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      [data-theme="dark"] {
+        --bg: #0a0a0a;
+        --surface: #111;
+        --surface2: #181818;
+        --border: rgba(255, 255, 255, 0.07);
+        --border2: rgba(255, 255, 255, 0.14);
+        --text: #f0ede8;
+        --muted: rgba(240, 237, 232, 0.45);
+        --accent: #c8a96e;
+        --accent-dim: rgba(200, 169, 110, 0.12);
+        --accent-border: rgba(200, 169, 110, 0.3);
+        --accent-text: #0a0a0a;
+        --success: #6ec88a;
+      }
+      [data-theme="light"] {
+        --bg: #f7f5f0;
+        --surface: #fff;
+        --surface2: #f0ede6;
+        --border: rgba(0, 0, 0, 0.07);
+        --border2: rgba(0, 0, 0, 0.14);
+        --text: #1a1814;
+        --muted: rgba(26, 24, 20, 0.45);
+        --accent: #9e7a3f;
+        --accent-dim: rgba(158, 122, 63, 0.1);
+        --accent-border: rgba(158, 122, 63, 0.3);
+        --accent-text: #fff;
+        --success: #27704a;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        overflow: hidden;
+      }
+      .shell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+        padding: 12px;
+        gap: 12px;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 560px;
+        flex-shrink: 0;
+      }
+      .game-title {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 28px;
+        font-weight: 300;
+        font-style: italic;
+        color: var(--accent);
+      }
+      .mode-row {
+        display: flex;
+        gap: 6px;
+      }
+      .mode-btn {
+        padding: 4px 10px;
+        border: 1px solid var(--border2);
+        border-radius: 100px;
+        background: var(--surface);
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+      }
+      .mode-btn.active {
+        border-color: var(--accent-border);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+      .stats {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+        max-width: 560px;
+        flex-shrink: 0;
+      }
+      .stat {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 6px 12px;
+        text-align: center;
+      }
+      .stat .k {
+        font-size: 8px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .stat .v {
+        font-size: 18px;
+        color: var(--text);
+        margin-top: 2px;
+      }
+      .board-area {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+      .grid {
+        display: grid;
+        gap: 8px;
+      }
+      .card {
+        position: relative;
+        cursor: pointer;
+        border-radius: 10px;
+        perspective: 600px;
+        background: transparent;
+      }
+      .card-inner {
+        position: absolute;
+        inset: 0;
+        transition: transform 0.4s cubic-bezier(0.4, 0.2, 0.2, 1);
+        transform-style: preserve-3d;
+      }
+      .card.flipped .card-inner,
+      .card.matched .card-inner {
+        transform: rotateY(180deg);
+      }
+      .face {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        user-select: none;
+      }
+      .face-back {
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        color: var(--accent);
+        font-size: 50%;
+      }
+      .face-front {
+        background: var(--accent-dim);
+        border: 1px solid var(--accent-border);
+        transform: rotateY(180deg);
+      }
+      .card.matched .face-front {
+        border-color: var(--success);
+        background: rgba(110, 200, 138, 0.14);
+        animation: pop 0.4s ease;
+      }
+      @keyframes pop {
+        50% {
+          transform: rotateY(180deg) scale(1.12);
+        }
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 18px;
+        border-radius: 6px;
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: 1px solid;
+        transition: all 0.18s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-text);
+        font-weight: 500;
+      }
+      .btn-primary:hover {
+        opacity: 0.85;
+      }
+      .win-banner {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 50;
+      }
+      .win-banner.show {
+        display: flex;
+      }
+      .win-box {
+        background: var(--surface);
+        border: 1px solid var(--accent-border);
+        border-radius: 16px;
+        padding: 32px 40px;
+        text-align: center;
+      }
+      .win-box h2 {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        font-weight: 300;
+        font-size: 32px;
+        color: var(--success);
+        margin-bottom: 8px;
+      }
+      .win-box p {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        margin-bottom: 20px;
+      }
+      .win-box b {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="title-row">
+        <div class="game-title">Memory</div>
+        <div class="mode-row">
+          <button class="mode-btn" data-pairs="6" onclick="setDiff(6)">
+            Easy
+          </button>
+          <button class="mode-btn active" data-pairs="8" onclick="setDiff(8)">
+            Medium
+          </button>
+          <button class="mode-btn" data-pairs="12" onclick="setDiff(12)">
+            Hard
+          </button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Moves</div>
+          <div class="v" id="moves">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Matches</div>
+          <div class="v" id="matches">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Time</div>
+          <div class="v" id="time">0:00</div>
+        </div>
+      </div>
+
+      <div class="board-area">
+        <div class="grid" id="grid"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="newGame()">↺ New Game</button>
+      </div>
+    </div>
+
+    <div class="win-banner" id="winBanner">
+      <div class="win-box">
+        <h2>Solved!</h2>
+        <p>
+          <b id="winMoves">0</b> moves · <b id="winTime">0:00</b>
+        </p>
+        <button class="btn btn-primary" onclick="newGame()">↺ Play Again</button>
+      </div>
+    </div>
+
+    <script>
+      const POOL = [
+        "🦊", "🐼", "🦁", "🐸", "🐙", "🦋", "🐢", "🦉",
+        "🐝", "🦄", "🐧", "🦀", "🐳", "🦔", "🐲", "🌸",
+        "⭐", "🍀", "🔥", "🌙",
+      ];
+
+      let pairs = 8;
+      let deck = [];
+      let firstCard = null;
+      let lock = false;
+      let moves = 0;
+      let matched = 0;
+      let timer = null;
+      let seconds = 0;
+      let started = false;
+
+      function setDiff(p) {
+        pairs = p;
+        document.querySelectorAll(".mode-btn").forEach((b) =>
+          b.classList.toggle("active", +b.dataset.pairs === p),
+        );
+        newGame();
+      }
+
+      function shuffle(a) {
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = (Math.random() * (i + 1)) | 0;
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      function fmtTime(s) {
+        const m = (s / 60) | 0;
+        return m + ":" + String(s % 60).padStart(2, "0");
+      }
+
+      function startTimer() {
+        if (started) return;
+        started = true;
+        timer = setInterval(() => {
+          seconds++;
+          document.getElementById("time").textContent = fmtTime(seconds);
+        }, 1000);
+      }
+
+      function layoutGrid(n) {
+        // pick a near-square column count for n cards
+        const cols = Math.ceil(Math.sqrt(n));
+        const rows = Math.ceil(n / cols);
+        const grid = document.getElementById("grid");
+        const area = document.querySelector(".board-area");
+        const gap = 8;
+        const availW = area.clientWidth - 8;
+        const availH = area.clientHeight - 8;
+        const size = Math.max(
+          44,
+          Math.min(
+            104,
+            Math.floor(
+              Math.min(
+                (availW - (cols - 1) * gap) / cols,
+                (availH - (rows - 1) * gap) / rows,
+              ),
+            ),
+          ),
+        );
+        grid.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
+        grid.querySelectorAll(".card").forEach((c) => {
+          c.style.width = size + "px";
+          c.style.height = size + "px";
+          c.style.fontSize = Math.round(size * 0.5) + "px";
+        });
+      }
+
+      function newGame() {
+        clearInterval(timer);
+        timer = null;
+        started = false;
+        seconds = 0;
+        moves = 0;
+        matched = 0;
+        firstCard = null;
+        lock = false;
+        document.getElementById("moves").textContent = "0";
+        document.getElementById("matches").textContent = "0";
+        document.getElementById("time").textContent = "0:00";
+        document.getElementById("winBanner").classList.remove("show");
+
+        const chosen = shuffle([...POOL]).slice(0, pairs);
+        deck = shuffle([...chosen, ...chosen]);
+
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+        deck.forEach((icon, i) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.dataset.icon = icon;
+          card.dataset.idx = i;
+          card.innerHTML = `
+            <div class="card-inner">
+              <div class="face face-back">?</div>
+              <div class="face face-front">${icon}</div>
+            </div>`;
+          card.addEventListener("click", () => flip(card));
+          grid.appendChild(card);
+        });
+        layoutGrid(deck.length);
+      }
+
+      function flip(card) {
+        if (lock) return;
+        if (card.classList.contains("flipped")) return;
+        if (card.classList.contains("matched")) return;
+        startTimer();
+        card.classList.add("flipped");
+
+        if (!firstCard) {
+          firstCard = card;
+          return;
+        }
+
+        // second card
+        moves++;
+        document.getElementById("moves").textContent = moves;
+
+        if (firstCard.dataset.icon === card.dataset.icon) {
+          firstCard.classList.add("matched");
+          card.classList.add("matched");
+          firstCard = null;
+          matched++;
+          document.getElementById("matches").textContent = matched;
+          if (matched === pairs) win();
+        } else {
+          lock = true;
+          const a = firstCard;
+          firstCard = null;
+          setTimeout(() => {
+            a.classList.remove("flipped");
+            card.classList.remove("flipped");
+            lock = false;
+          }, 750);
+        }
+      }
+
+      function win() {
+        clearInterval(timer);
+        document.getElementById("winMoves").textContent = moves;
+        document.getElementById("winTime").textContent = fmtTime(seconds);
+        setTimeout(
+          () => document.getElementById("winBanner").classList.add("show"),
+          500,
+        );
+      }
+
+      window.addEventListener("resize", () => layoutGrid(deck.length));
+
+      // Theme sync with parent launcher
+      try {
+        const t =
+          window.parent.document.documentElement.getAttribute("data-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+
+      newGame();
+    </script>
+  </body>
+</html>
