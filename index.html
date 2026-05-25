@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ka" data-theme="dark">
+<html lang="ka" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,6 +8,7 @@
     <script src="main.js"></script>
     <script src="games.js" defer></script>
     <script src="videoplayer.js" defer></script>
+    <script src="themes.js" defer></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,600;0,700;0,800;1,700;1,800&display=swap"
       rel="stylesheet"
@@ -428,10 +429,11 @@
       </div>
     </div>
 
-    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
-      <span class="theme-toggle-icon" id="themeIcon">☀</span>
-      <span id="themeLabel">LIGHT</span>
-    </button>
+    <div class="theme-controls" id="themeControls">
+      <button class="theme-toggle" id="themeBtn" aria-label="Theme settings" title="Themes">
+        <span class="theme-toggle-icon" id="themeIcon">🎨</span>
+      </button>
+    </div>
 
     <div class="app">
       <div class="header">
@@ -1235,5 +1237,74 @@
         setStep(0);
       }
     </script> -->
+
+    <!-- Always-fresh: register the network-first service worker so every
+         visitor automatically gets the latest version of the site. When an
+         update is ready, show a small "Refresh" banner instead of silently
+         reloading mid-use. -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        var hadController = !!navigator.serviceWorker.controller;
+        var reloading = false;
+
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+          // reload once, only when an *update* takes over (not the first install)
+          if (!hadController || reloading) return;
+          reloading = true;
+          location.reload();
+        });
+
+        function showUpdateBanner(worker) {
+          if (!worker || document.getElementById("sw-update-banner")) return;
+          var b = document.createElement("div");
+          b.id = "sw-update-banner";
+          b.style.cssText =
+            "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);" +
+            "z-index:10001;display:flex;align-items:center;gap:14px;" +
+            "padding:11px 16px;border-radius:100px;font-family:'DM Mono',monospace;" +
+            "font-size:12px;letter-spacing:0.04em;color:var(--text,#f0ede8);" +
+            "background:var(--surface,#111);border:1px solid var(--accent-border,rgba(200,169,110,0.4));" +
+            "box-shadow:0 10px 34px rgba(0,0,0,0.5);";
+          var msg = document.createElement("span");
+          msg.textContent = "A new version of the site is available.";
+          var btn = document.createElement("button");
+          btn.textContent = "Refresh";
+          btn.style.cssText =
+            "cursor:pointer;border:none;border-radius:100px;padding:6px 16px;" +
+            "font-family:'DM Mono',monospace;font-size:11px;font-weight:600;" +
+            "background:var(--accent,#c8a96e);color:var(--accent-text,#0a0a0a);";
+          btn.onclick = function () {
+            btn.textContent = "Updating…";
+            worker.postMessage("SKIP_WAITING");
+          };
+          b.appendChild(msg);
+          b.appendChild(btn);
+          document.body.appendChild(b);
+        }
+
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("sw.js")
+            .then(function (reg) {
+              // a newer worker might already be waiting from a previous visit
+              if (reg.waiting && navigator.serviceWorker.controller)
+                showUpdateBanner(reg.waiting);
+              // ...or one may start installing now
+              reg.addEventListener("updatefound", function () {
+                var nw = reg.installing;
+                if (!nw) return;
+                nw.addEventListener("statechange", function () {
+                  if (nw.state === "installed" && navigator.serviceWorker.controller)
+                    showUpdateBanner(nw);
+                });
+              });
+              reg.update(); // check for a newer worker on every visit
+            })
+            .catch(function () {
+              /* service workers unavailable (e.g. opened from file://) — ignore */
+            });
+        });
+      }
+    </script>
   </body>
 </html>

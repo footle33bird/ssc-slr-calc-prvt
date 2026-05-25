@@ -48,9 +48,11 @@
       border-radius: 10px;
       cursor: pointer;
       user-select: none;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 4px 18px rgba(0,0,0,0.25);
       transition: all 0.2s ease;
       font-family: 'DM Mono', monospace;
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
     }
     #yt-launch:hover {
       border-color: var(--accent-border, rgba(200,169,110,0.35));
@@ -77,8 +79,10 @@
       border: 1px solid var(--accent-border, rgba(200,169,110,0.3));
       border-radius: 14px;
       overflow: hidden;
-      box-shadow: 0 24px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(200,169,110,0.05);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 24px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(200,169,110,0.05);
       font-family: 'DM Mono', monospace;
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      backdrop-filter: blur(22px) saturate(180%);
     }
     #yt-pip.open { display: flex; }
     #yt-pip.minimized { height: auto !important; min-height: 0; }
@@ -250,14 +254,19 @@
     }
     .yt-shield.show { display: block; }
 
-    .yt-resize {
-      position: absolute;
-      right: 0; bottom: 0;
-      width: 16px; height: 16px;
-      cursor: nwse-resize;
-      z-index: 4;
-    }
-    .yt-resize::after {
+    /* resize handles on every edge + corner */
+    .yt-rz { position: absolute; z-index: 7; }
+    .yt-rz.corner { z-index: 8; width: 16px; height: 16px; }
+    .yt-rz-n { top: 0; left: 0; right: 0; height: 8px; cursor: ns-resize; }
+    .yt-rz-s { bottom: 0; left: 0; right: 0; height: 8px; cursor: ns-resize; }
+    .yt-rz-e { top: 0; bottom: 0; right: 0; width: 8px; cursor: ew-resize; }
+    .yt-rz-w { top: 0; bottom: 0; left: 0; width: 8px; cursor: ew-resize; }
+    .yt-rz-ne { top: 0; right: 0; cursor: nesw-resize; }
+    .yt-rz-nw { top: 0; left: 0; cursor: nwse-resize; }
+    .yt-rz-se { bottom: 0; right: 0; cursor: nwse-resize; }
+    .yt-rz-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+    /* subtle grip mark in the bottom-right corner */
+    .yt-rz-se::after {
       content: "";
       position: absolute;
       right: 3px; bottom: 3px;
@@ -265,6 +274,10 @@
       border-right: 2px solid var(--muted, rgba(240,237,232,0.4));
       border-bottom: 2px solid var(--muted, rgba(240,237,232,0.4));
     }
+    /* header sits below the resize handles, but its buttons sit above them,
+       so the top edge resizes while the buttons stay clickable */
+    .yt-head { position: relative; }
+    .yt-head .yt-btn { position: relative; z-index: 20; }
 
     @media (max-width: 560px) {
       #yt-launch { top: auto; bottom: 84px; right: 16px; padding: 9px 13px; }
@@ -300,11 +313,18 @@
       <div class="yt-stage">
         <iframe allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
         <div class="yt-results"></div>
-        <div class="yt-resize"></div>
       </div>
     </div>
   `;
   document.body.appendChild(pip);
+
+  // resize handles: 4 edges + 4 corners
+  ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach((dir) => {
+    const h = document.createElement("div");
+    h.className = "yt-rz yt-rz-" + dir + (dir.length === 2 ? " corner" : "");
+    h.dataset.dir = dir;
+    pip.appendChild(h);
+  });
 
   const head = pip.querySelector(".yt-head");
   const titleText = pip.querySelector(".yt-title-text");
@@ -312,7 +332,6 @@
   const input = pip.querySelector(".yt-search input");
   const iframe = pip.querySelector(".yt-stage iframe");
   const results = pip.querySelector(".yt-results");
-  const resizeHandle = pip.querySelector(".yt-resize");
 
   /* ── persistence ─────────────────────────────────── */
   const LS = "yt-pip-state";
@@ -572,24 +591,65 @@
     saveState();
   }
 
-  /* ── resizing ────────────────────────────────────── */
+  /* ── resizing from any edge or corner ────────────────── */
+  const MIN_W = 264,
+    MIN_H = 188,
+    MARGIN = 4;
   let rez = null;
-  resizeHandle.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const r = pip.getBoundingClientRect();
-    rez = { x: e.clientX, y: e.clientY, w: r.width, h: r.height };
-    shield.classList.add("show");
-    shield.style.cursor = "nwse-resize";
-    window.addEventListener("pointermove", onResize);
-    window.addEventListener("pointerup", endResize);
+  pip.querySelectorAll(".yt-rz").forEach((handle) => {
+    handle.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const r = pip.getBoundingClientRect();
+      rez = {
+        dir: handle.dataset.dir,
+        sx: e.clientX,
+        sy: e.clientY,
+        left: r.left,
+        top: r.top,
+        w: r.width,
+        h: r.height,
+      };
+      shield.classList.add("show");
+      shield.style.cursor = getComputedStyle(handle).cursor;
+      window.addEventListener("pointermove", onResize);
+      window.addEventListener("pointerup", endResize);
+    });
   });
   function onResize(e) {
     if (!rez) return;
-    const w = Math.max(264, rez.w + (e.clientX - rez.x));
-    const h = Math.max(188, rez.h + (e.clientY - rez.y));
-    pip.style.width = Math.min(w, window.innerWidth - 8) + "px";
-    pip.style.height = Math.min(h, window.innerHeight - 8) + "px";
+    const d = rez.dir;
+    const dx = e.clientX - rez.sx;
+    const dy = e.clientY - rez.sy;
+    const right = rez.left + rez.w;
+    const bottom = rez.top + rez.h;
+    let left = rez.left,
+      top = rez.top,
+      w = rez.w,
+      h = rez.h;
+
+    if (d.includes("e")) {
+      w = Math.min(rez.w + dx, window.innerWidth - rez.left - MARGIN);
+      w = Math.max(MIN_W, w);
+    }
+    if (d.includes("s")) {
+      h = Math.min(rez.h + dy, window.innerHeight - rez.top - MARGIN);
+      h = Math.max(MIN_H, h);
+    }
+    if (d.includes("w")) {
+      // right edge stays fixed; left edge follows the cursor
+      left = Math.max(MARGIN, Math.min(rez.left + dx, right - MIN_W));
+      w = right - left;
+    }
+    if (d.includes("n")) {
+      // bottom edge stays fixed; top edge follows the cursor
+      top = Math.max(MARGIN, Math.min(rez.top + dy, bottom - MIN_H));
+      h = bottom - top;
+    }
+    pip.style.width = w + "px";
+    pip.style.height = h + "px";
+    pip.style.left = left + "px";
+    pip.style.top = top + "px";
   }
   function endResize() {
     rez = null;

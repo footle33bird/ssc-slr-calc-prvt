@@ -400,6 +400,15 @@
     #mg-frame-wrap::-webkit-scrollbar-thumb:hover {
       background: var(--accent-border, rgba(200,169,110,0.3));
     }
+
+    /* ── LIQUID GLASS: frost the launcher surfaces ── */
+    #mg-burger, #mg-games-list, #mg-fab, #mg-picker, #mg-modal, #mg-topbar {
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+    }
+    #mg-burger, #mg-games-list, #mg-fab, #mg-picker {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 10px 30px rgba(0,0,0,0.32);
+    }
   `;
   document.head.appendChild(style);
 
@@ -432,6 +441,7 @@
     <div class="mg-picker-row" data-game="tictactoe"><span class="mg-picker-icon">⭕</span><span class="mg-picker-name">Tic-Tac-Toe</span></div>
     <div class="mg-picker-row" data-game="nonograms"><span class="mg-picker-icon">🧩</span><span class="mg-picker-name">Nonograms</span></div>
     <div class="mg-picker-row" data-game="slots"><span class="mg-picker-icon">🎰</span><span class="mg-picker-name">Slots</span></div>
+    <div class="mg-picker-row" data-game="blackjack"><span class="mg-picker-icon">🃏</span><span class="mg-picker-name">Blackjack</span></div>
     <div class="mg-picker-cat">Retro · Emulated</div>
     <div class="mg-picker-row" data-game="doom"><span class="mg-picker-icon">👹</span><span class="mg-picker-name">DOOM</span></div>
     <div class="mg-picker-row" data-game="pacman"><span class="mg-picker-icon">🟡</span><span class="mg-picker-name">Pac-Man</span></div>
@@ -515,6 +525,10 @@
       <button class="mg-panel-btn" onclick="window.mgOpen('slots')" title="Slots">
         <span class="mg-panel-icon">🎰</span>
         <span class="mg-panel-name">Slots</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('blackjack')" title="Blackjack">
+        <span class="mg-panel-icon">🃏</span>
+        <span class="mg-panel-name">Blackjack</span>
       </button>
 
       <div class="mg-cat">Retro · Emulated</div>
@@ -615,6 +629,7 @@
     tictactoe: { icon: "⭕", name: "Tic-Tac-Toe", file: "tictactoe.html" },
     nonograms: { icon: "🧩", name: "Nonograms", file: "nonograms.html" },
     slots: { icon: "🎰", name: "Slots", file: "slots.html" },
+    blackjack: { icon: "🃏", name: "Blackjack", file: "blackjack.html" },
     // ── Retro / emulated (run via the Internet Archive) ──
     doom: { icon: "👹", name: "DOOM", file: "doom.html", retro: true },
     pacman: {
