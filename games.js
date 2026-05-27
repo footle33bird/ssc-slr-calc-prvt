@@ -466,7 +466,7 @@
 
   fab.addEventListener("click", openPicker);
   pickerBackdrop.addEventListener("click", closePicker);
-  picker.querySelectorAll(".mg-picker-row").forEach(row => {
+  picker.querySelectorAll(".mg-picker-row").forEach((row) => {
     row.addEventListener("click", () => {
       closePicker();
       window.mgOpen(row.dataset.game);
@@ -570,9 +570,11 @@
     panel.classList.toggle("open");
   });
   // collapse the menu after picking a game, and when clicking away
-  panel.querySelectorAll(".mg-panel-btn").forEach((b) =>
-    b.addEventListener("click", () => panel.classList.remove("open"))
-  );
+  panel
+    .querySelectorAll(".mg-panel-btn")
+    .forEach((b) =>
+      b.addEventListener("click", () => panel.classList.remove("open")),
+    );
   document.addEventListener("click", (e) => {
     if (!panel.contains(e.target)) panel.classList.remove("open");
   });
@@ -636,23 +638,33 @@
     // ── Retro / emulated (run via the Internet Archive) ──
     doom: { icon: "👹", name: "DOOM", file: "doom.html", retro: true },
     pacman: {
-      icon: "🟡", name: "Pac-Man", retro: true,
+      icon: "🟡",
+      name: "Pac-Man",
+      retro: true,
       file: "retro.html?id=msdos_Pac-Man_1983&name=Pac-Man&year=1983",
     },
     dkong: {
-      icon: "🦍", name: "Donkey Kong", retro: true,
+      icon: "🦍",
+      name: "Donkey Kong",
+      retro: true,
       file: "retro.html?id=msdos_Donkey_Kong_1983&name=Donkey%20Kong&year=1983",
     },
     pop: {
-      icon: "🗡️", name: "Prince of Persia", retro: true,
+      icon: "🗡️",
+      name: "Prince of Persia",
+      retro: true,
       file: "retro.html?id=msdos_Prince_of_Persia_1990&name=Prince%20of%20Persia&year=1990",
     },
     simcity: {
-      icon: "🏙️", name: "SimCity", retro: true,
+      icon: "🏙️",
+      name: "SimCity",
+      retro: true,
       file: "retro.html?id=msdos_SimCity_1989&name=SimCity&year=1989",
     },
     oregon: {
-      icon: "🐂", name: "Oregon Trail", retro: true,
+      icon: "🐂",
+      name: "Oregon Trail",
+      retro: true,
       file: "retro.html?id=msdos_Oregon_Trail_The_1990&name=Oregon%20Trail&year=1990",
     },
   };

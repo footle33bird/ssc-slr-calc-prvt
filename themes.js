@@ -36,6 +36,10 @@
     { name: "Forest", base: "dark", accent: "#6ec88a", bg: "#0b140e", text: "#e8f2ea" },
     { name: "Rosé", base: "light", accent: "#c2557a", bg: "#f4e9ee", text: "#2a1820" },
     { name: "Grape", base: "dark", accent: "#a78bdb", bg: "#120f1c", text: "#efeaf7" },
+    { name: "Midnight Ember", base: "dark", accent: "#ff6b35", bg: "#0d1117", text: "#f0ece8" },
+    { name: "Noir Rose", base: "dark", accent: "#e8729a", bg: "#1a0a0a", text: "#f4e8ec" },
+    { name: "Abyss Frost", base: "dark", accent: "#e4f0f6", bg: "#0a0f1e", text: "#e6ecf4" },
+    { name: "Crimson Chalk", base: "light", accent: "#dc143c", bg: "#f2efe7", text: "#1a1414" },
   ];
 
   /* ── colour helpers ─────────────────────────────────── */

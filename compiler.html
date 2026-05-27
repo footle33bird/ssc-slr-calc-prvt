@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Compiler</title>
+
+    <!-- site palette + fonts (gives us the theme CSS variables) -->
+    <link href="styles.css" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- CodeMirror 5 (editor: syntax highlighting + line numbers) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <!-- editing niceties -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+
+    <style>
+      :root {
+        --code-bg: #0f1115;
+        --code-bg2: #15181f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--canvas, var(--bg, #0a0a0a));
+        color: var(--text, #f0ede8);
+        font-family: "Nunito", sans-serif;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      button,
+      select,
+      input,
+      textarea {
+        font-family: inherit;
+      }
+
+      /* ── TOP BAR ── */
+      .cmp-bar {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 14px;
+        background: var(--surface-solid, #181818);
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+        flex-shrink: 0;
+        flex-wrap: wrap;
+      }
+      .cmp-title {
+        font-weight: 800;
+        font-style: italic;
+        letter-spacing: -0.01em;
+        font-size: 16px;
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-right: 6px;
+      }
+      .cmp-title .dot {
+        color: var(--accent, #c8a96e);
+      }
+
+      /* shared compact control height so buttons + selects line up cleanly */
+      .cmp-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 13px;
+        border-radius: 9px;
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        background: var(--surface, #181818);
+        color: var(--text, #f0ede8);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition:
+          border-color 0.16s ease,
+          color 0.16s ease,
+          background 0.16s ease,
+          transform 0.08s ease;
+        white-space: nowrap;
+      }
+      .cmp-btn:hover {
+        border-color: var(--accent-border, rgba(200, 169, 110, 0.4));
+        color: var(--accent, #c8a96e);
+      }
+      .cmp-btn:active {
+        transform: scale(0.96);
+      }
+      .cmp-btn.primary {
+        background: var(--accent, #c8a96e);
+        border-color: var(--accent, #c8a96e);
+        color: var(--accent-text, #0a0a0a);
+        box-shadow: 0 4px 14px var(--accent-dim, rgba(200, 169, 110, 0.3));
+      }
+      .cmp-btn.primary:hover {
+        filter: brightness(1.07);
+        color: var(--accent-text, #0a0a0a);
+      }
+      .cmp-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      /* icon-only buttons stay square */
+      #cmp-bar-toggle {
+        width: 34px;
+        padding: 0;
+      }
+
+      select.cmp-select {
+        height: 34px;
+        width: auto; /* override the global form `select { width:100% }` */
+        max-width: 200px;
+        padding: 0 30px 0 12px;
+        border-radius: 9px;
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        background-color: var(--input-bg, #111);
+        color: var(--text, #f0ede8);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c8a96e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 11px center;
+        transition: border-color 0.16s ease;
+      }
+      select.cmp-select:hover {
+        border-color: var(--accent-border, rgba(200, 169, 110, 0.4));
+      }
+      select.cmp-select:focus {
+        border-color: var(--accent, #c8a96e);
+      }
+      #cmp-lang {
+        min-width: 150px;
+      }
+      #cmp-snippets {
+        min-width: 130px;
+      }
+      select.cmp-select option {
+        background: var(--surface-solid, #1b1815);
+        color: var(--text);
+      }
+
+      /* ── WORKSPACE (flex so panes are drag-resizable) ── */
+      .cmp-workspace {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+        --editor-basis: 50%;
+      }
+      .cmp-pane {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+      #cmp-pane-editor {
+        flex: 0 0 var(--editor-basis);
+      }
+      #cmp-pane-output {
+        flex: 1 1 0;
+      }
+
+      /* draggable gutters */
+      .cmp-gutter {
+        background: var(--border, rgba(255, 255, 255, 0.1));
+        flex-shrink: 0;
+      }
+      .cmp-gutter:hover {
+        background: var(--accent-border, rgba(200, 169, 110, 0.5));
+      }
+      .cmp-gutter-v {
+        width: 6px;
+        cursor: col-resize;
+      }
+      .cmp-gutter-h {
+        height: 6px;
+        cursor: row-resize;
+      }
+
+      /* maximize one pane to fill the workspace (in-page) */
+      .cmp-workspace.max-editor #cmp-pane-output,
+      .cmp-workspace.max-editor #cmp-gutter-main,
+      .cmp-workspace.max-output #cmp-pane-editor,
+      .cmp-workspace.max-output #cmp-gutter-main {
+        display: none;
+      }
+      .cmp-workspace.max-editor #cmp-pane-editor,
+      .cmp-workspace.max-output #cmp-pane-output {
+        flex: 1 1 auto;
+      }
+      .cmp-pane-head {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px 6px 14px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted, rgba(240, 237, 232, 0.5));
+        background: var(--surface2, #15181f);
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+        flex-shrink: 0;
+      }
+      .cmp-pane-head .spacer {
+        margin-left: auto;
+      }
+      .cmp-status {
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        text-transform: none;
+      }
+      .cmp-status.ok {
+        color: var(--success, #6ec88a);
+      }
+      .cmp-status.err {
+        color: var(--danger, #e06060);
+      }
+      .cmp-status.busy {
+        color: var(--accent, #c8a96e);
+      }
+
+      /* editor area — tuned to read like VS Code's dark editor */
+      .cmp-editor-wrap {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        background: #1e1e1e;
+      }
+      .CodeMirror {
+        height: 100% !important;
+        background: #1e1e1e !important;
+        color: #d4d4d4;
+        font-family: "JetBrains Mono", ui-monospace, "DM Mono", monospace;
+        font-size: 13.5px;
+        line-height: 1.6;
+      }
+      .CodeMirror-lines {
+        padding: 10px 0;
+      }
+      /* gutter / line numbers like VS Code */
+      .CodeMirror-gutters {
+        background: #1e1e1e !important;
+        border-right: 1px solid #2a2a2a !important;
+      }
+      .CodeMirror-linenumber {
+        color: #6e7681;
+        padding: 0 10px 0 8px;
+      }
+      .CodeMirror-activeline-background {
+        background: rgba(255, 255, 255, 0.035) !important;
+      }
+      .CodeMirror-activeline .CodeMirror-linenumber {
+        color: #c6c6c6;
+      }
+      .CodeMirror-cursor {
+        border-left: 1.6px solid #aeafad !important;
+      }
+      .CodeMirror-selected {
+        background: #264f78 !important;
+      }
+      .CodeMirror-focused .CodeMirror-selected {
+        background: #264f78 !important;
+      }
+      .CodeMirror-matchingbracket {
+        color: #ffd700 !important;
+        border-bottom: 1px solid #ffd700;
+        font-weight: 700;
+      }
+      /* slim VS Code-style scrollbars inside the editor */
+      .CodeMirror-vscrollbar,
+      .CodeMirror-hscrollbar {
+        scrollbar-width: thin;
+      }
+      .CodeMirror-vscrollbar::-webkit-scrollbar,
+      .CodeMirror-hscrollbar::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+      }
+      .CodeMirror-vscrollbar::-webkit-scrollbar-thumb,
+      .CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+        background: #424242;
+        border: 3px solid #1e1e1e;
+        border-radius: 10px;
+      }
+
+      /* stdin */
+      .cmp-stdin {
+        flex-shrink: 0;
+        border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+        background: var(--code-bg2, #15181f);
+        display: none;
+      }
+      .cmp-stdin.show {
+        display: block;
+      }
+      .cmp-stdin textarea {
+        width: 100%;
+        height: 78px;
+        resize: vertical;
+        border: none;
+        outline: none;
+        padding: 10px 14px;
+        background: transparent;
+        color: var(--text, #f0ede8);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12.5px;
+      }
+
+      /* output */
+      .cmp-out-wrap {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--code-bg, #0f1115);
+      }
+      #cmp-output {
+        flex: 1;
+        margin: 0;
+        overflow: auto;
+        padding: 14px 16px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12.5px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #d4d7dd;
+      }
+      #cmp-output .err {
+        color: #ff8d7a;
+      }
+      #cmp-output .meta {
+        color: #7f8794;
+      }
+      #cmp-output .ok {
+        color: #84d8a0;
+      }
+      .cmp-placeholder {
+        color: #6b7280;
+      }
+
+      /* web preview iframe */
+      #cmp-preview {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        border: none;
+        background: #fff;
+      }
+
+      /* web console (captures console.* + errors from the preview) */
+      #cmp-console {
+        height: 165px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+        background: var(--code-bg2, #15181f);
+      }
+      .cmp-console-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 12px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted, rgba(240, 237, 232, 0.5));
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.07));
+        flex-shrink: 0;
+      }
+      .cmp-console-head .spacer {
+        margin-left: auto;
+      }
+      #cmp-console-clear {
+        background: none;
+        border: none;
+        color: var(--muted, rgba(240, 237, 232, 0.5));
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      #cmp-console-clear:hover {
+        color: var(--accent, #c8a96e);
+      }
+      #cmp-console-log {
+        flex: 1;
+        overflow: auto;
+        padding: 8px 12px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .cmp-cl-line {
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding: 1px 0;
+      }
+      .cmp-cl-line .tag {
+        display: inline-block;
+        min-width: 44px;
+        color: #6b7280;
+        text-transform: uppercase;
+        font-size: 9px;
+        letter-spacing: 0.08em;
+      }
+      .cmp-cl-line.log {
+        color: #d4d7dd;
+      }
+      .cmp-cl-line.info {
+        color: #7fb4ff;
+      }
+      .cmp-cl-line.warn {
+        color: #ffcf6b;
+      }
+      .cmp-cl-line.error {
+        color: #ff8d7a;
+      }
+      .cmp-cl-empty {
+        color: #6b7280;
+      }
+
+      /* layout modes: text languages show the <pre>; web shows preview+console */
+      #cmp-preview,
+      #cmp-console,
+      #cmp-gutter-console {
+        display: none;
+      }
+      .cmp-out-wrap.web #cmp-output {
+        display: none;
+      }
+      .cmp-out-wrap.web #cmp-preview {
+        display: block;
+      }
+      .cmp-out-wrap.web #cmp-console {
+        display: flex;
+      }
+      .cmp-out-wrap.web #cmp-gutter-console {
+        display: block;
+      }
+
+      /* toast */
+      #cmp-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 26px;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--surface-solid, #1b1815);
+        border: 1px solid var(--accent-border, rgba(200, 169, 110, 0.4));
+        color: var(--text, #f0ede8);
+        padding: 10px 18px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 700;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.25s ease;
+        z-index: 9999;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      }
+      #cmp-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* collapse the toolbar to a slim strip so the editor/terminal get the room.
+         When collapsed, only the title + Run + the toggle remain visible. */
+      .cmp-bar-toggle {
+        margin-left: 4px;
+        font-size: 13px;
+      }
+      /* hide the entire top bar; a small floating handle brings it back */
+      body.bar-collapsed .cmp-bar {
+        display: none;
+      }
+      #cmp-bar-show {
+        position: fixed;
+        top: 10px;
+        right: 12px;
+        z-index: 60;
+        display: none;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        background: var(--surface-solid, #1b1815);
+        color: var(--muted, rgba(240, 237, 232, 0.6));
+        font-size: 11px;
+        cursor: pointer;
+        opacity: 0.55;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+        transition:
+          opacity 0.15s ease,
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+      #cmp-bar-show:hover {
+        opacity: 1;
+        color: var(--accent, #c8a96e);
+        border-color: var(--accent-border, rgba(200, 169, 110, 0.4));
+      }
+      body.bar-collapsed #cmp-bar-show {
+        display: inline-flex;
+      }
+      /* while the bar is hidden, keep the pane-header controls clear of the
+         floating restore handle in the top-right corner */
+      body.bar-collapsed .cmp-pane-head {
+        padding-right: 48px;
+      }
+
+      /* pane header icon buttons (stdin, maximize) — flat ghost, like the top bar */
+      .cmp-pane-btn {
+        background: transparent;
+        border: none;
+        color: var(--muted, rgba(240, 237, 232, 0.6));
+        border-radius: 7px;
+        width: 26px;
+        height: 24px;
+        line-height: 1;
+        font-size: 13px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.14s ease,
+          color 0.14s ease;
+        flex-shrink: 0;
+      }
+      .cmp-pane-btn:hover {
+        color: var(--accent, #c8a96e);
+        background: var(--accent-dim, rgba(200, 169, 110, 0.16));
+      }
+      .cmp-pane-btn:active {
+        transform: scale(0.92);
+      }
+      .cmp-pane-btn.on {
+        color: var(--accent-text, #0a0a0a);
+        background: var(--accent, #c8a96e);
+      }
+
+      /* per-panel zoom — a tidy segmented pill */
+      .cmp-zoom {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        border-radius: 7px;
+        overflow: hidden;
+        height: 24px;
+      }
+      .cmp-zoom button {
+        width: 24px;
+        border: none;
+        background: transparent;
+        color: var(--muted, rgba(240, 237, 232, 0.7));
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.14s ease,
+          color 0.14s ease;
+      }
+      .cmp-zoom button:hover {
+        background: var(--accent-dim, rgba(200, 169, 110, 0.16));
+        color: var(--accent, #c8a96e);
+      }
+      .cmp-zoom .pct {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 38px;
+        padding: 0 2px;
+        font-size: 9.5px;
+        font-weight: 700;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--muted, rgba(240, 237, 232, 0.7));
+        border-left: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+        border-right: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+      }
+
+      /* the console height is user-resizable via its gutter */
+      #cmp-console {
+        height: var(--console-h, 165px);
+      }
+
+      /* ── EDITOR TABS (multiple open files) ── */
+      .cmp-tabs {
+        display: flex;
+        align-items: stretch;
+        gap: 2px;
+        flex-shrink: 0;
+        padding: 5px 6px 0 6px;
+        background: #181818;
+        border-bottom: 1px solid #2a2a2a;
+        overflow-x: auto;
+        scrollbar-width: thin;
+      }
+      .cmp-tabs::-webkit-scrollbar { height: 0; }
+      .cmp-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 7px 6px 11px;
+        border-radius: 8px 8px 0 0;
+        background: transparent;
+        color: #9a9a9a;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px;
+        white-space: nowrap;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-bottom: none;
+        transition: background 0.14s ease, color 0.14s ease;
+      }
+      .cmp-tab:hover { background: rgba(255, 255, 255, 0.05); color: #d4d4d4; }
+      .cmp-tab.active {
+        background: #1e1e1e;
+        color: #e8e8e8;
+        border-color: #2a2a2a;
+      }
+      .cmp-tab-x {
+        border: none;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        opacity: 0.55;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cmp-tab-x:hover { opacity: 1; background: rgba(255, 255, 255, 0.14); color: #e06060; }
+      .cmp-tab-add {
+        border: none;
+        background: transparent;
+        color: #9a9a9a;
+        cursor: pointer;
+        font-size: 16px;
+        width: 28px;
+        border-radius: 7px;
+        flex-shrink: 0;
+        align-self: center;
+        height: 26px;
+      }
+      .cmp-tab-add:hover { color: var(--accent, #c8a96e); background: rgba(255, 255, 255, 0.06); }
+
+      /* quiet icon buttons for secondary actions (flat, no chunky borders) */
+      .cmp-ibtn {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        color: var(--muted, rgba(240, 237, 232, 0.55));
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        text-decoration: none;
+        transition:
+          background 0.14s ease,
+          color 0.14s ease;
+      }
+      .cmp-ibtn:hover {
+        background: var(--accent-dim, rgba(200, 169, 110, 0.16));
+        color: var(--accent, #c8a96e);
+      }
+      .cmp-ibtn:active {
+        transform: scale(0.92);
+      }
+
+      /* utility cluster + thin divider separating it from language/Run */
+      .cmp-bar-utils {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .cmp-divider {
+        width: 1px;
+        height: 22px;
+        background: var(--border2, rgba(255, 255, 255, 0.18));
+        margin: 0 5px;
+      }
+
+      /* compact snippets select (icon-only) */
+      #cmp-snippets.cmp-mini {
+        min-width: 0;
+        width: 50px;
+        max-width: 50px;
+        padding: 0 20px 0 9px;
+        height: 32px;
+      }
+
+      /* fold the theme + video launchers into the icon-button look */
+      .cmp-bar-utils #themeControls {
+        position: static !important;
+        display: inline-flex;
+        gap: 3px;
+        top: auto !important;
+        right: auto !important;
+      }
+      #yt-launch {
+        display: none !important;
+      } /* hide its default fixed launcher until moved into the bar */
+      .cmp-bar-utils #thm-quick,
+      .cmp-bar-utils .theme-toggle,
+      .cmp-bar-utils #yt-launch {
+        display: inline-flex !important;
+        position: static !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: 32px !important;
+        height: 32px !important;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        border-radius: 8px !important;
+        color: var(--muted, rgba(240, 237, 232, 0.55)) !important;
+      }
+      .cmp-bar-utils #thm-quick:hover,
+      .cmp-bar-utils .theme-toggle:hover,
+      .cmp-bar-utils #yt-launch:hover {
+        background: var(--accent-dim, rgba(200, 169, 110, 0.16)) !important;
+        color: var(--accent, #c8a96e) !important;
+      }
+
+      /* responsive: stack editor over output on small screens */
+      @media (max-width: 820px) {
+        .cmp-workspace {
+          flex-direction: column;
+        }
+        .cmp-gutter-v {
+          width: auto;
+          height: 6px;
+          cursor: row-resize;
+        }
+        .cmp-title {
+          font-size: 15px;
+        }
+        .cmp-bar {
+          gap: 7px;
+          padding: 9px 12px;
+        }
+        .cmp-btn,
+        select.cmp-select {
+          padding: 7px 11px;
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOP BAR -->
+    <div class="cmp-bar">
+      <div class="cmp-title"><span class="dot">⌨</span> Code Compiler</div>
+
+      <!-- primary: language + run -->
+      <select class="cmp-select cmp-collapsible" id="cmp-lang" title="Language">
+        <option value="python">Python</option>
+        <option value="javascript">JavaScript (Node)</option>
+        <option value="java">Java</option>
+        <option value="cpp">C++</option>
+        <option value="c">C</option>
+        <option value="web">Web (HTML / CSS / JS)</option>
+      </select>
+      <button
+        class="cmp-btn primary"
+        id="cmp-run"
+        title="Run (Ctrl/Cmd + Enter)"
+      >
+        ▶ Run
+      </button>
+
+      <span class="cmp-divider cmp-collapsible"></span>
+
+      <!-- secondary: quiet icon buttons -->
+      <div class="cmp-bar-utils cmp-collapsible" id="cmp-bar-utils">
+        <button class="cmp-ibtn" id="cmp-save" title="Save snippet">💾</button>
+        <select
+          class="cmp-select cmp-mini"
+          id="cmp-snippets"
+          title="Load a saved snippet"
+        >
+          <option value="">📂</option>
+        </select>
+        <button class="cmp-ibtn" id="cmp-clear" title="Clear output">🧹</button>
+        <button class="cmp-ibtn" id="cmp-full" title="Fullscreen">⛶</button>
+        <!-- theme controls (☀/☾ + 🎨); themes.js wires these up -->
+        <div class="theme-controls" id="themeControls">
+          <button
+            class="theme-toggle"
+            id="themeBtn"
+            aria-label="Theme settings"
+            title="Themes"
+          >
+            <span class="theme-toggle-icon" id="themeIcon">🎨</span>
+          </button>
+        </div>
+        <!-- 📺 video launcher (#yt-launch) is moved in here by compiler.js -->
+        <a
+          class="cmp-ibtn"
+          id="cmp-home"
+          href="index.html"
+          title="Back to the calculator"
+          >⌂</a
+        >
+      </div>
+
+      <button
+        class="cmp-ibtn cmp-bar-toggle"
+        id="cmp-bar-toggle"
+        title="Hide controls — focus on your code"
+      >
+        ▾
+      </button>
+    </div>
+
+    <!-- WORKSPACE -->
+    <div class="cmp-workspace" id="cmp-workspace">
+      <!-- editor -->
+      <div class="cmp-pane" id="cmp-pane-editor">
+        <div class="cmp-pane-head">
+          <span id="cmp-editor-label">Editor</span>
+          <span class="spacer"></span>
+          <span class="cmp-status" id="cmp-runtime"></span>
+          <span class="cmp-zoom">
+            <button data-zoom="editor" data-dir="-1" title="Zoom out">−</button>
+            <span class="pct" id="cmp-zoom-editor">100%</span>
+            <button data-zoom="editor" data-dir="1" title="Zoom in">+</button>
+          </span>
+          <button
+            class="cmp-pane-btn"
+            id="cmp-stdin-toggle"
+            title="Program input (stdin) — what your code reads from input()/cin"
+          >
+            ⌨
+          </button>
+          <button
+            class="cmp-pane-btn"
+            data-max="editor"
+            title="Maximize editor"
+          >
+            ⛶
+          </button>
+        </div>
+        <div class="cmp-tabs" id="cmp-tabs"></div>
+        <div class="cmp-editor-wrap">
+          <textarea id="cmp-code"></textarea>
+        </div>
+        <div class="cmp-stdin" id="cmp-stdin">
+          <textarea
+            id="cmp-stdin-text"
+            placeholder="Standard input (stdin) — one line per prompt…"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- draggable divider between editor and output -->
+      <div
+        class="cmp-gutter cmp-gutter-v"
+        id="cmp-gutter-main"
+        title="Drag to resize"
+      ></div>
+
+      <!-- output -->
+      <div class="cmp-pane" id="cmp-pane-output">
+        <div class="cmp-pane-head">
+          <span id="cmp-out-label">Output</span>
+          <span class="spacer"></span>
+          <span class="cmp-status" id="cmp-status"></span>
+          <span class="cmp-zoom">
+            <button data-zoom="output" data-dir="-1" title="Zoom out">−</button>
+            <span class="pct" id="cmp-zoom-output">100%</span>
+            <button data-zoom="output" data-dir="1" title="Zoom in">+</button>
+          </span>
+          <button
+            class="cmp-pane-btn"
+            data-max="output"
+            title="Maximize output / preview"
+          >
+            ⛶
+          </button>
+        </div>
+        <div class="cmp-out-wrap" id="cmp-out-wrap">
+          <pre
+            id="cmp-output"
+          ><span class="cmp-placeholder">▶ Run your code to see the output here.</span></pre>
+          <iframe
+            id="cmp-preview"
+            title="Web preview"
+            sandbox="allow-scripts allow-modals"
+          ></iframe>
+          <!-- draggable divider between preview and console (web mode) -->
+          <div
+            class="cmp-gutter cmp-gutter-h"
+            id="cmp-gutter-console"
+            title="Drag to resize console"
+          ></div>
+          <div id="cmp-console">
+            <div class="cmp-console-head">
+              <span>Console</span>
+              <span class="spacer"></span>
+              <span class="cmp-zoom">
+                <button data-zoom="console" data-dir="-1" title="Zoom out">
+                  −
+                </button>
+                <span class="pct" id="cmp-zoom-console">100%</span>
+                <button data-zoom="console" data-dir="1" title="Zoom in">
+                  +
+                </button>
+              </span>
+              <span id="cmp-console-count">0</span>
+              <button id="cmp-console-clear" title="Clear console">
+                clear
+              </button>
+            </div>
+            <div id="cmp-console-log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- restore handle: shown only while the bar is hidden -->
+    <button id="cmp-bar-show" title="Show controls">▾</button>
+
+    <div id="cmp-toast"></div>
+
+    <!-- theme engine + draggable video player; their launchers are restyled as
+         quiet icon buttons inside the top bar's utility group -->
+    <script src="themes.js" defer></script>
+    <script src="videoplayer.js" defer></script>
+
+    <!-- editor + execution logic lives in an external file so the embedded
+         <script> strings used by the web preview can never break HTML parsing -->
+    <script src="compiler.js" defer></script>
+  </body>
+</html>

@@ -36,21 +36,24 @@
   style.textContent = `
     #yt-launch {
       position: fixed;
-      top: 66px; /* sits just below the page's theme toggle (top:20) */
-      right: 20px;
+      /* sits in the same row as the theme controls, just to their left.
+         theme controls = two 38px pills + 8px gap = 84px, anchored right:20 */
+      top: 20px;
+      right: 112px;
       z-index: 8800;
       display: flex;
       align-items: center;
-      gap: 9px;
-      padding: 11px 16px;
+      justify-content: center;
+      width: 38px;
+      height: 35px;
+      padding: 0;
       background: var(--surface, #111);
-      border: 1px solid var(--border2, rgba(255,255,255,0.12));
-      border-radius: 10px;
+      border: 1px solid var(--border2, rgba(255,255,255,0.15));
+      border-radius: 100px;
       cursor: pointer;
       user-select: none;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 4px 18px rgba(0,0,0,0.25);
       transition: all 0.2s ease;
-      font-family: 'DM Mono', monospace;
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       backdrop-filter: blur(20px) saturate(180%);
     }
@@ -59,12 +62,6 @@
       background: var(--surface2, #181818);
     }
     #yt-launch .yt-l-icon { font-size: 15px; line-height: 1; }
-    #yt-launch .yt-l-label {
-      font-size: 10px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--accent, #c8a96e);
-    }
 
     #yt-pip {
       position: fixed;
@@ -280,7 +277,7 @@
     .yt-head .yt-btn { position: relative; z-index: 20; }
 
     @media (max-width: 560px) {
-      #yt-launch { top: auto; bottom: 84px; right: 16px; padding: 9px 13px; }
+      #yt-launch { top: auto; bottom: 84px; right: 16px; }
     }
   `;
   document.head.appendChild(style);
@@ -289,7 +286,7 @@
   const launch = document.createElement("button");
   launch.id = "yt-launch";
   launch.setAttribute("aria-label", "Open video player");
-  launch.innerHTML = `<span class="yt-l-icon">📺</span><span class="yt-l-label">Videos</span>`;
+  launch.innerHTML = `<span class="yt-l-icon">📺</span>`;
   document.body.appendChild(launch);
 
   const shield = document.createElement("div");
@@ -561,14 +558,57 @@
     );
   }
 
-  /* ── dragging (pointer events cover mouse + touch) ── */
+  /* ── drag + drop-to-corner snapping ── */
+  const SNAP = 130; // how close (px) to a corner before it snaps there
+  const DOCK_M = 16; // margin from the edge once docked
+  const DOCK_W = 300, // compact size the player shrinks to when docked in a corner
+    DOCK_H = 196;
+
+  // corner drop-zone hints, shown only while dragging
+  const dzWrap = document.createElement("div");
+  dzWrap.id = "yt-dropzones";
+  dzWrap.style.cssText =
+    "position:fixed;inset:0;pointer-events:none;z-index:9490;display:none;";
+  const dzEls = {};
+  ["tl", "tr", "bl", "br"].forEach((c) => {
+    const d = document.createElement("div");
+    d.style.cssText =
+      "position:absolute;width:104px;height:74px;border:2px dashed rgba(200,169,110,0.4);" +
+      "border-radius:12px;transition:background .12s ease,border-color .12s ease;";
+    d.style[c[0] === "t" ? "top" : "bottom"] = "14px";
+    d.style[c[1] === "l" ? "left" : "right"] = "14px";
+    dzWrap.appendChild(d);
+    dzEls[c] = d;
+  });
+  document.body.appendChild(dzWrap);
+
+  function nearCorner() {
+    const r = pip.getBoundingClientRect();
+    const W = window.innerWidth, H = window.innerHeight;
+    const v = r.top <= SNAP ? "t" : (H - r.bottom <= SNAP ? "b" : null);
+    const h = r.left <= SNAP ? "l" : (W - r.right <= SNAP ? "r" : null);
+    return v && h ? v + h : null;
+  }
+  function highlightZones(active) {
+    Object.keys(dzEls).forEach((k) => {
+      const on = k === active;
+      dzEls[k].style.background = on ? "rgba(200,169,110,0.22)" : "transparent";
+      dzEls[k].style.borderColor = on
+        ? "var(--accent, #c8a96e)"
+        : "rgba(200,169,110,0.4)";
+    });
+  }
+
   let drag = null;
   head.addEventListener("pointerdown", (e) => {
     if (e.target.closest("[data-act]")) return; // let buttons work
     const r = pip.getBoundingClientRect();
     drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    pip.style.transition = ""; // no lag while dragging
     shield.classList.add("show");
     shield.style.cursor = "grabbing";
+    dzWrap.style.display = "block";
+    highlightZones(null);
     window.addEventListener("pointermove", onDrag);
     window.addEventListener("pointerup", endDrag);
   });
@@ -582,13 +622,29 @@
     y = Math.max(4, Math.min(y, window.innerHeight - h - 4));
     pip.style.left = x + "px";
     pip.style.top = y + "px";
+    highlightZones(nearCorner());
   }
   function endDrag() {
     drag = null;
     shield.classList.remove("show");
+    dzWrap.style.display = "none";
     window.removeEventListener("pointermove", onDrag);
     window.removeEventListener("pointerup", endDrag);
-    saveState();
+
+    // drop-to-corner: shrink to a compact size and snap flush into the corner
+    const c = nearCorner();
+    if (c) {
+      const W = window.innerWidth, H = window.innerHeight;
+      pip.style.transition =
+        "left 0.18s ease, top 0.18s ease, width 0.18s ease, height 0.18s ease";
+      pip.style.width = DOCK_W + "px";
+      pip.style.height = DOCK_H + "px";
+      pip.style.left = (c[1] === "l" ? DOCK_M : W - DOCK_W - DOCK_M) + "px";
+      pip.style.top = (c[0] === "t" ? DOCK_M : H - DOCK_H - DOCK_M) + "px";
+      setTimeout(() => { pip.style.transition = ""; saveState(); }, 200);
+    } else {
+      saveState();
+    }
   }
 
   /* ── resizing from any edge or corner ────────────────── */

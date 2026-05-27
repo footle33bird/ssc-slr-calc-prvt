@@ -126,13 +126,14 @@
 
   /* ── PROGRESS ── */
   .progress-bar {
-    display: flex; align-items: center;
-    margin-bottom: 12px; position: relative;
+    display: flex; align-items: flex-start;
+    margin-bottom: 36px; position: relative;
   }
-  .progress-bar::before {
-    content: ''; position: absolute;
-    top: 50%; left: 0; right: 0; height: 1px;
-    background: var(--border); transform: translateY(-50%); z-index: 0;
+  /* each step = dot stacked above its label, so the label is always
+     centred under its dot regardless of spacing */
+  .step-node {
+    display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0; width: 30px;
   }
   .step-dot {
     width: 30px; height: 30px; border-radius: 50%;
@@ -140,7 +141,8 @@
     display: flex; align-items: center; justify-content: center;
     font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted);
     position: relative; z-index: 1; flex-shrink: 0;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, color 0.3s ease,
+                background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
     cursor: default;
   }
   .step-dot.clickable {
@@ -152,32 +154,48 @@
   }
   .step-dot.active {
     border-color: var(--accent); color: var(--accent);
-    box-shadow: 0 0 0 4px var(--accent-dim);
+    animation: dotPulse 2s ease-in-out infinite;
   }
   .step-dot.done {
     border-color: var(--accent); background: var(--accent); color: var(--accent-text);
     cursor: pointer;
+    animation: dotPop 0.35s ease;
   }
+  @keyframes dotPulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--accent-dim); }
+    50%      { box-shadow: 0 0 0 6px transparent; }
+  }
+  @keyframes dotPop {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  /* connector line sits at the dot's vertical centre and fills L→R when done */
   .step-line {
-    flex: 1; height: 1px; background: var(--border);
-    position: relative; z-index: 0; transition: background 0.3s ease;
+    flex: 1; height: 1px; margin-top: 15px;
+    background: var(--border); overflow: hidden;
+    position: relative; z-index: 0;
   }
-  .step-line.done { background: var(--accent-border); }
-  .step-labels {
-    display: flex; justify-content: space-between;
-    margin-bottom: 36px;
+  .step-line::after {
+    content: ''; position: absolute; inset: 0;
+    background: var(--accent-border);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.5s ease;
   }
+  .step-line.done::after { transform: scaleX(1); }
   .step-label {
+    margin-top: 10px;
     font-family: 'DM Mono', monospace; font-size: 9px;
     letter-spacing: 0.12em; color: var(--muted);
-    text-transform: uppercase; text-align: center;
-    flex: 1; transition: color 0.3s ease; cursor: default;
+    text-transform: uppercase; text-align: center; white-space: nowrap;
+    /* width:0 + overflow lets the label stay centred on its dot without
+       widening the node (so dot spacing stays even) */
+    width: 0; overflow: visible;
+    transition: color 0.3s ease; cursor: default;
   }
   .step-label.clickable { cursor: pointer; }
   .step-label.clickable:hover { color: var(--accent); }
   .step-label.active { color: var(--accent); }
-  .step-label:first-child { text-align: left; }
-  .step-label:last-child { text-align: right; }
 
   /* ── STEPS ── */
   .step { display: none; animation: fadeUp 0.35s ease; }
@@ -430,10 +448,24 @@
     </div>
 
     <div class="theme-controls" id="themeControls">
-      <button class="theme-toggle" id="themeBtn" aria-label="Theme settings" title="Themes">
+      <button
+        class="theme-toggle"
+        id="themeBtn"
+        aria-label="Theme settings"
+        title="Themes"
+      >
         <span class="theme-toggle-icon" id="themeIcon">🎨</span>
       </button>
     </div>
+
+    <a
+      class="compiler-launch"
+      id="compilerLaunch"
+      href="compiler.html"
+      aria-label="Open code compiler"
+      title="Code Compiler"
+      >💻</a
+    >
 
     <div class="app">
       <div class="header">
@@ -443,23 +475,31 @@
       </div>
 
       <div class="progress-bar">
-        <div class="step-dot active" id="dot0" onclick="dotClick(0)">01</div>
+        <div class="step-node">
+          <div class="step-dot active" id="dot0" onclick="dotClick(0)">01</div>
+          <span class="step-label active" id="lbl0" onclick="dotClick(0)"
+            >Role</span
+          >
+        </div>
         <div class="step-line" id="line0"></div>
-        <div class="step-dot" id="dot1" onclick="dotClick(1)">02</div>
+        <div class="step-node">
+          <div class="step-dot" id="dot1" onclick="dotClick(1)">02</div>
+          <span class="step-label" id="lbl1" onclick="dotClick(1)"
+            >Details</span
+          >
+        </div>
         <div class="step-line" id="line1"></div>
-        <div class="step-dot" id="dot2" onclick="dotClick(2)">03</div>
+        <div class="step-node">
+          <div class="step-dot" id="dot2" onclick="dotClick(2)">03</div>
+          <span class="step-label" id="lbl2" onclick="dotClick(2)"
+            >Additions</span
+          >
+        </div>
         <div class="step-line" id="line2"></div>
-        <div class="step-dot" id="dot3" onclick="dotClick(3)">04</div>
-      </div>
-      <div class="step-labels">
-        <span class="step-label active" id="lbl0" onclick="dotClick(0)"
-          >Role</span
-        >
-        <span class="step-label" id="lbl1" onclick="dotClick(1)">Details</span>
-        <span class="step-label" id="lbl2" onclick="dotClick(2)"
-          >Additions</span
-        >
-        <span class="step-label" id="lbl3" onclick="dotClick(3)">Result</span>
+        <div class="step-node">
+          <div class="step-dot" id="dot3" onclick="dotClick(3)">04</div>
+          <span class="step-label" id="lbl3" onclick="dotClick(3)">Result</span>
+        </div>
       </div>
 
       <!-- STEP 1: Role -->
@@ -538,10 +578,16 @@
         </div>
         <div class="field-group">
           <label class="field-label">Insurance Plan</label>
-          <div class="toggle-row active" id="insLRow" onclick="selectInsPlan('L')">
+          <div
+            class="toggle-row active"
+            id="insLRow"
+            onclick="selectInsPlan('L')"
+          >
             <div class="toggle-left">
               <span class="toggle-name">L Insurance</span
-              ><span class="toggle-meta">Covered by company · 0.00 GEL / month</span>
+              ><span class="toggle-meta"
+                >Covered by company · 0.00 GEL / month</span
+              >
             </div>
             <div class="ins-radio"></div>
           </div>
@@ -553,25 +599,49 @@
             <div class="ins-radio"></div>
           </div>
           <div class="ins-family-section" id="insFamilySection">
-            <label class="field-label" style="margin-bottom:10px;padding-top:4px;">Family Coverage</label>
-            <div class="toggle-row active" id="insNoFamilyRow" onclick="selectInsFamilyAddon(null)">
+            <label
+              class="field-label"
+              style="margin-bottom: 10px; padding-top: 4px"
+              >Family Coverage</label
+            >
+            <div
+              class="toggle-row active"
+              id="insNoFamilyRow"
+              onclick="selectInsFamilyAddon(null)"
+            >
               <div class="toggle-left">
                 <span class="toggle-name">Individual Only</span
-                ><span class="toggle-meta" id="insNoFamilyMeta">No deduction</span>
+                ><span class="toggle-meta" id="insNoFamilyMeta"
+                  >No deduction</span
+                >
               </div>
               <div class="ins-radio"></div>
             </div>
-            <div class="toggle-row" id="insTwoMemberRow" onclick="selectInsFamilyAddon('two')">
+            <div
+              class="toggle-row"
+              id="insTwoMemberRow"
+              onclick="selectInsFamilyAddon('two')"
+            >
               <div class="toggle-left">
-                <span class="toggle-name">Monthly Insurance Premium Per Two-Member Family</span
-                ><span class="toggle-meta" id="insTwoMemberMeta">−68.00 GEL / month</span>
+                <span class="toggle-name"
+                  >Monthly Insurance Premium Per Two-Member Family</span
+                ><span class="toggle-meta" id="insTwoMemberMeta"
+                  >−68.00 GEL / month</span
+                >
               </div>
               <div class="ins-radio"></div>
             </div>
-            <div class="toggle-row" id="insFullFamilyRow" onclick="selectInsFamilyAddon('full')">
+            <div
+              class="toggle-row"
+              id="insFullFamilyRow"
+              onclick="selectInsFamilyAddon('full')"
+            >
               <div class="toggle-left">
-                <span class="toggle-name">Monthly Insurance Premium Per Family</span
-                ><span class="toggle-meta" id="insFullFamilyMeta">−143.00 GEL / month</span>
+                <span class="toggle-name"
+                  >Monthly Insurance Premium Per Family</span
+                ><span class="toggle-meta" id="insFullFamilyMeta"
+                  >−143.00 GEL / month</span
+                >
               </div>
               <div class="ins-radio"></div>
             </div>
@@ -603,7 +673,8 @@
                   padding: 8px 4px;
                   background: var(--input-bg);
                   color: var(--text);
-                  font-family: &quot;Nunito&quot;, sans-serif; font-weight: 600;
+                  font-family: &quot;Nunito&quot;, sans-serif;
+                  font-weight: 600;
                   text-align: center;
                 "
               />
@@ -637,7 +708,8 @@
                   padding: 8px 4px;
                   background: var(--input-bg);
                   color: var(--text);
-                  font-family: &quot;Nunito&quot;, sans-serif; font-weight: 600;
+                  font-family: &quot;Nunito&quot;, sans-serif;
+                  font-weight: 600;
                   text-align: center;
                 "
                 onkeydown="handleSnapArrowKeys(event)"
@@ -670,7 +742,8 @@
                   padding: 8px 4px;
                   background: var(--input-bg);
                   color: var(--text);
-                  font-family: &quot;Nunito&quot;, sans-serif; font-weight: 600;
+                  font-family: &quot;Nunito&quot;, sans-serif;
+                  font-weight: 600;
                   text-align: center;
                 "
                 onkeydown="handleUnpaidLeavesArrowKeys(event)"
@@ -1247,12 +1320,15 @@
         var hadController = !!navigator.serviceWorker.controller;
         var reloading = false;
 
-        navigator.serviceWorker.addEventListener("controllerchange", function () {
-          // reload once, only when an *update* takes over (not the first install)
-          if (!hadController || reloading) return;
-          reloading = true;
-          location.reload();
-        });
+        navigator.serviceWorker.addEventListener(
+          "controllerchange",
+          function () {
+            // reload once, only when an *update* takes over (not the first install)
+            if (!hadController || reloading) return;
+            reloading = true;
+            location.reload();
+          },
+        );
 
         function showUpdateBanner(worker) {
           if (!worker || document.getElementById("sw-update-banner")) return;
@@ -1294,7 +1370,10 @@
                 var nw = reg.installing;
                 if (!nw) return;
                 nw.addEventListener("statechange", function () {
-                  if (nw.state === "installed" && navigator.serviceWorker.controller)
+                  if (
+                    nw.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  )
                     showUpdateBanner(nw);
                 });
               });
