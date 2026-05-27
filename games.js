@@ -445,6 +445,8 @@
     <div class="mg-picker-row" data-game="nonograms"><span class="mg-picker-icon">🧩</span><span class="mg-picker-name">Nonograms</span></div>
     <div class="mg-picker-row" data-game="slots"><span class="mg-picker-icon">🎰</span><span class="mg-picker-name">Slots</span></div>
     <div class="mg-picker-row" data-game="blackjack"><span class="mg-picker-icon">🃏</span><span class="mg-picker-name">Blackjack</span></div>
+    <div class="mg-picker-row" data-game="mahjong"><span class="mg-picker-icon">🀄</span><span class="mg-picker-name">Mahjong</span></div>
+    <div class="mg-picker-row" data-game="candycrush"><span class="mg-picker-icon">🍬</span><span class="mg-picker-name">Candy Crush</span></div>
     <div class="mg-picker-cat">Retro · Emulated</div>
     <div class="mg-picker-row" data-game="doom"><span class="mg-picker-icon">👹</span><span class="mg-picker-name">DOOM</span></div>
     <div class="mg-picker-row" data-game="pacman"><span class="mg-picker-icon">🟡</span><span class="mg-picker-name">Pac-Man</span></div>
@@ -532,6 +534,14 @@
       <button class="mg-panel-btn" onclick="window.mgOpen('blackjack')" title="Blackjack">
         <span class="mg-panel-icon">🃏</span>
         <span class="mg-panel-name">Blackjack</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('mahjong')" title="Mahjong">
+        <span class="mg-panel-icon">🀄</span>
+        <span class="mg-panel-name">Mahjong</span>
+      </button>
+      <button class="mg-panel-btn" onclick="window.mgOpen('candycrush')" title="Candy Crush">
+        <span class="mg-panel-icon">🍬</span>
+        <span class="mg-panel-name">Candy Crush</span>
       </button>
 
       <div class="mg-cat">Retro · Emulated</div>
@@ -622,6 +632,21 @@
   const label = document.getElementById("mg-game-label");
   let isFullscreen = false;
 
+  /* keep each game's light/dark theme in sync with the site (same-origin iframe) */
+  function syncFrameTheme() {
+    try {
+      const theme = document.documentElement.getAttribute("data-theme") || "dark";
+      const doc = frame.contentDocument;
+      if (doc && doc.documentElement) doc.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {}
+  }
+  frame.addEventListener("load", syncFrameTheme);
+  // re-sync whenever the site theme changes while a game is open
+  new MutationObserver(syncFrameTheme).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+
   const GAMES = {
     snake: { icon: "🐍", name: "Snake", file: "snake.html" },
     2048: { icon: "🔢", name: "2048", file: "2048.html" },
@@ -635,6 +660,8 @@
     nonograms: { icon: "🧩", name: "Nonograms", file: "nonograms.html" },
     slots: { icon: "🎰", name: "Slots", file: "slots.html" },
     blackjack: { icon: "🃏", name: "Blackjack", file: "blackjack.html" },
+    mahjong: { icon: "🀄", name: "Mahjong", file: "mahjong.html" },
+    candycrush: { icon: "🍬", name: "Candy Crush", file: "candycrush.html" },
     // ── Retro / emulated (run via the Internet Archive) ──
     doom: { icon: "👹", name: "DOOM", file: "doom.html", retro: true },
     pacman: {

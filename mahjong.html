@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mahjong</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;0,800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      [data-theme="dark"] {
+        --bg: #0a0a0a; --surface: #141414; --border: rgba(255,255,255,0.1);
+        --text: #f0ede8; --muted: rgba(240,237,232,0.5); --accent: #c8a96e; --accent-text: #0a0a0a;
+        --canvas: radial-gradient(125% 125% at 0% 0%, #0e1410 0%, #0a0908 60%, #060606 100%);
+      }
+      [data-theme="light"] {
+        --bg: #eae7f0; --surface: #ffffff; --border: rgba(0,0,0,0.1);
+        --text: #1a1814; --muted: rgba(26,24,20,0.55); --accent: #9e7a3f; --accent-text: #ffffff;
+        --canvas: radial-gradient(125% 125% at 0% 0%, #e6ece6 0%, #e7e2ec 100%);
+      }
+      html, body { height: 100%; }
+      body {
+        background: var(--canvas);
+        color: var(--text); font-family: "Nunito", sans-serif;
+        display: flex; flex-direction: column; align-items: center;
+        min-height: 100vh; padding: 16px; gap: 14px; user-select: none; overflow-x: hidden;
+      }
+      .hud {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        justify-content: center; width: 100%; max-width: 640px;
+      }
+      .title { font-weight: 800; font-style: italic; font-size: 22px; margin-right: auto; }
+      .title .dot { color: var(--accent); }
+      .stat {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 10px; padding: 6px 13px; text-align: center;
+      }
+      .stat .k { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+      .stat .v { font-size: 17px; font-weight: 800; color: var(--accent); }
+      button.btn {
+        border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        font-family: inherit; font-weight: 700; font-size: 12px;
+        padding: 8px 14px; border-radius: 10px; cursor: pointer;
+      }
+      button.btn:hover { border-color: var(--accent); color: var(--accent); }
+      button.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+
+      #stage { width: 100%; display: flex; justify-content: center; overflow: hidden; }
+      #board { position: relative; transform-origin: top center; }
+
+      .tile {
+        position: absolute;
+        background: linear-gradient(165deg, #faf7f0, #ded8c8);
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,0.25);
+        box-shadow: 2px 3px 0 rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);
+        display: flex; align-items: center; justify-content: center;
+        color: #1a1814; cursor: default;
+        transition: transform 0.1s ease, opacity 0.2s ease, box-shadow 0.1s ease;
+      }
+      .tile.free { cursor: pointer; }
+      .tile.free:hover { transform: translateY(-2px); }
+      .tile.locked { filter: brightness(0.62) saturate(0.7); }
+      .tile.sel {
+        box-shadow: 2px 3px 0 rgba(0,0,0,0.45), inset 0 0 0 3px var(--accent);
+        background: linear-gradient(165deg, #fff7e0, #f0e4bf);
+      }
+      .tile.gone { opacity: 0; transform: scale(0.4) rotate(-8deg); pointer-events: none; }
+      @keyframes tileIn {
+        from { opacity: 0; transform: translateY(-10px) scale(0.85); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .msg { font-size: 13px; color: var(--muted); min-height: 18px; text-align: center; }
+      .msg b { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div class="hud">
+      <div class="title"><span class="dot">🀄</span> Mahjong</div>
+      <div class="stat"><div class="k">Pairs left</div><div class="v" id="left">0</div></div>
+      <button class="btn" id="hint">Hint</button>
+      <button class="btn" id="shuffle">Shuffle</button>
+      <button class="btn primary" id="restart">New game</button>
+    </div>
+    <div id="stage"><div id="board"></div></div>
+    <div class="msg" id="msg">Match two <b>free</b> tiles with the same face. A tile is free if it has nothing on top and an open left or right side.</div>
+
+    <script>
+      (function () {
+        var FACES = [
+          "🀇","🀈","🀉","🀊","🀋","🀌","🀍","🀎","🀏",
+          "🀙","🀚","🀛","🀜","🀝","🀞","🀟","🀠","🀡",
+          "🀐","🀑","🀒","🀓","🀔","🀕","🀖","🀗","🀘",
+          "🀀","🀁","🀂","🀃","🀄","🀅","🀆",
+        ];
+        var TW = 42, TH = 54, OFF = 7; // tile size + per-layer stagger
+        var tiles = [], byKey = {}, sel = null, busy = false;
+        var board = document.getElementById("board");
+
+        function key(l, c, r) { return l + ":" + c + ":" + r; }
+
+        // exact-stack pyramid: 6×6 base, 4×4, 2×2  (= 56 tiles, 28 pairs)
+        function layout() {
+          var pos = [];
+          [[0, 0, 6], [1, 1, 4], [2, 2, 2]].forEach(function (spec) {
+            var layer = spec[0], start = spec[1], n = spec[2];
+            for (var r = 0; r < n; r++)
+              for (var c = 0; c < n; c++)
+                pos.push({ layer: layer, c: start + c, r: start + r });
+          });
+          return pos;
+        }
+
+        function alive(l, c, r) { var t = byKey[key(l, c, r)]; return t && !t.removed; }
+        function covered(t) { return alive(t.layer + 1, t.c, t.r); }
+        function isFree(t) {
+          if (t.removed || covered(t)) return false;
+          var leftOpen = !alive(t.layer, t.c - 1, t.r);
+          var rightOpen = !alive(t.layer, t.c + 1, t.r);
+          return leftOpen || rightOpen;
+        }
+        function freeTiles() { return tiles.filter(isFree); }
+
+        // build a guaranteed-solvable deal by assigning faces in valid removal order
+        function deal() {
+          var pos = layout();
+          tiles = pos.map(function (p) { return { layer: p.layer, c: p.c, r: p.r, face: null, removed: false }; });
+          byKey = {};
+          tiles.forEach(function (t) { byKey[key(t.layer, t.c, t.r)] = t; });
+
+          // simulate removals on a working copy
+          tiles.forEach(function (t) { t.removed = false; });
+          var pairIdx = 0, remaining = tiles.length;
+          var guard = 0;
+          while (remaining > 0 && guard++ < 1000) {
+            var free = freeTiles();
+            var pick;
+            if (free.length >= 2) {
+              shuffle(free);
+              pick = [free[0], free[1]];
+            } else {
+              var rem = tiles.filter(function (t) { return !t.removed; });
+              pick = [rem[0], rem[1]];
+            }
+            var f = FACES[pairIdx % FACES.length]; pairIdx++;
+            pick[0].face = f; pick[1].face = f;
+            pick[0].removed = true; pick[1].removed = true;
+            remaining -= 2;
+          }
+          // reset for play
+          tiles.forEach(function (t) { t.removed = false; });
+          sel = null;
+          render(true);
+          updateLeft();
+          // clear the entrance animation so hover/lift transforms work afterwards
+          setTimeout(function () {
+            tiles.forEach(function (t) { if (t.el) t.el.style.animation = ""; });
+          }, 1000);
+        }
+
+        function shuffle(a) {
+          for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var t = a[i]; a[i] = a[j]; a[j] = t;
+          }
+          return a;
+        }
+
+        function dims() {
+          var maxL = 2;
+          var w = 0, h = 0;
+          tiles.forEach(function (t) {
+            w = Math.max(w, t.c * TW + t.layer * OFF + TW);
+            h = Math.max(h, t.r * TH + maxL * OFF + TH);
+          });
+          return { w: w, h: h, maxL: maxL };
+        }
+
+        function render(rebuild) {
+          var d = dims();
+          board.style.width = d.w + "px";
+          board.style.height = d.h + "px";
+          if (rebuild) {
+            board.innerHTML = "";
+            tiles.forEach(function (t, i) {
+              var el = document.createElement("div");
+              el.className = "tile";
+              el.style.width = TW + "px";
+              el.style.height = TH + "px";
+              el.style.fontSize = Math.round(TH * 0.66) + "px";
+              el.textContent = t.face;
+              // staggered deal-in animation
+              el.style.animation = "tileIn 0.32s ease both";
+              el.style.animationDelay = (i * 0.01).toFixed(2) + "s";
+              el.addEventListener("click", function () { onClick(t); });
+              t.el = el;
+              board.appendChild(el);
+            });
+          }
+          tiles.forEach(function (t) {
+            var el = t.el;
+            // higher layers shifted up + right for the 3-D stack look
+            el.style.left = (t.c * TW + t.layer * OFF) + "px";
+            el.style.top = (t.r * TH + (d.maxL - t.layer) * OFF) + "px";
+            el.style.zIndex = t.layer * 10000 + t.r * 100 + t.c;
+            el.classList.toggle("gone", t.removed);
+            var free = isFree(t);
+            el.classList.toggle("free", free && !t.removed);
+            el.classList.toggle("locked", !free && !t.removed);
+            if (sel !== t) el.classList.remove("sel");
+          });
+          fit();
+        }
+
+        function fit() {
+          var stage = document.getElementById("stage");
+          var avail = Math.min(stage.clientWidth, 660);
+          var d = dims();
+          var scale = Math.min(1, avail / d.w);
+          board.style.transform = "scale(" + scale + ")";
+          board.style.height = d.h * scale + "px"; // reserve scaled height
+          board.style.width = d.w + "px";
+        }
+
+        function onClick(t) {
+          if (busy || t.removed || !isFree(t)) return;
+          if (sel === t) { sel.el.classList.remove("sel"); sel = null; return; }
+          if (!sel) { sel = t; t.el.classList.add("sel"); return; }
+          if (sel.face === t.face) {
+            var a = sel, b = t;
+            a.el.classList.remove("sel"); sel = null;
+            a.removed = true; b.removed = true;
+            a.el.classList.add("gone"); b.el.classList.add("gone");
+            busy = true;
+            setTimeout(function () {
+              render(); updateLeft(); busy = false;
+              if (tiles.every(function (x) { return x.removed; })) {
+                msg("🎉 You cleared the board! <b>Well played.</b>");
+              } else if (!hasMove()) {
+                msg("No matching free pairs left — try <b>Shuffle</b>.");
+              } else { msg("Nice — keep going."); }
+            }, 200);
+          } else {
+            sel.el.classList.remove("sel"); sel = t; t.el.classList.add("sel");
+          }
+        }
+
+        function hasMove() {
+          var free = freeTiles();
+          for (var i = 0; i < free.length; i++)
+            for (var j = i + 1; j < free.length; j++)
+              if (free[i].face === free[j].face) return true;
+          return false;
+        }
+
+        function findHint() {
+          var free = freeTiles();
+          for (var i = 0; i < free.length; i++)
+            for (var j = i + 1; j < free.length; j++)
+              if (free[i].face === free[j].face) return [free[i], free[j]];
+          return null;
+        }
+
+        function updateLeft() {
+          var n = tiles.filter(function (t) { return !t.removed; }).length;
+          document.getElementById("left").textContent = Math.ceil(n / 2);
+        }
+        function msg(h) { document.getElementById("msg").innerHTML = h; }
+
+        document.getElementById("hint").addEventListener("click", function () {
+          var h = findHint();
+          if (!h) { msg("No free matches — <b>Shuffle</b> the board."); return; }
+          [h[0], h[1]].forEach(function (t) {
+            t.el.style.transition = "none";
+            t.el.style.boxShadow = "2px 3px 0 rgba(0,0,0,0.45), inset 0 0 0 3px #e06060";
+            setTimeout(function () { t.el.style.transition = ""; t.el.style.boxShadow = ""; render(); }, 750);
+          });
+        });
+
+        document.getElementById("shuffle").addEventListener("click", function () {
+          if (busy) return;
+          // reassign the remaining faces randomly across remaining positions
+          var rem = tiles.filter(function (t) { return !t.removed; });
+          var faces = shuffle(rem.map(function (t) { return t.face; }));
+          rem.forEach(function (t, i) { t.face = faces[i]; t.el.textContent = faces[i]; });
+          if (sel) { sel.el.classList.remove("sel"); sel = null; }
+          render(); msg("Shuffled the remaining tiles.");
+        });
+
+        document.getElementById("restart").addEventListener("click", deal);
+        window.addEventListener("resize", fit);
+        deal();
+      })();
+    </script>
+  </body>
+</html>

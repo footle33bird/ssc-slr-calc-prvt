@@ -164,9 +164,6 @@
       select.cmp-select:focus {
         border-color: var(--accent, #c8a96e);
       }
-      #cmp-lang {
-        min-width: 150px;
-      }
       #cmp-snippets {
         min-width: 130px;
       }
@@ -630,6 +627,92 @@
         height: var(--console-h, 165px);
       }
 
+      /* ── FLOATING LIVE-PREVIEW WINDOW (pop-out) ── */
+      #cmp-pip {
+        position: fixed;
+        z-index: 9200;
+        top: 90px;
+        right: 26px;
+        width: 420px;
+        height: 320px;
+        min-width: 240px;
+        min-height: 150px;
+        display: none;
+        flex-direction: column;
+        background: var(--surface-solid, #1b1815);
+        border: 1px solid var(--accent-border, rgba(200, 169, 110, 0.4));
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+      }
+      #cmp-pip.open { display: flex; }
+      #cmp-pip.min { height: auto !important; min-height: 0; }
+      #cmp-pip.min .cmp-pip-body,
+      #cmp-pip.min .cmp-pip-rz { display: none; }
+      .cmp-pip-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 8px 7px 12px;
+        background: var(--surface2, #15181f);
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+        cursor: grab;
+        flex-shrink: 0;
+        touch-action: none;
+      }
+      .cmp-pip-head:active { cursor: grabbing; }
+      .cmp-pip-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--text, #f0ede8);
+        white-space: nowrap;
+      }
+      .cmp-pip-title .dot { color: var(--accent, #c8a96e); margin-right: 5px; }
+      .cmp-pip-sp { flex: 1; }
+      .cmp-pip-btn {
+        width: 26px;
+        height: 24px;
+        border: none;
+        background: transparent;
+        color: var(--muted, rgba(240, 237, 232, 0.6));
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cmp-pip-btn:hover { background: var(--accent-dim, rgba(200, 169, 110, 0.16)); color: var(--accent, #c8a96e); }
+      .cmp-pip-body { flex: 1; min-height: 0; position: relative; background: #fff; }
+      /* the preview iframe fills whichever container it currently lives in */
+      #cmp-pip-body #cmp-preview { display: block; width: 100%; height: 100%; }
+      /* resize handles on every edge + corner */
+      .cmp-pip-rz { position: absolute; z-index: 7; }
+      .cmp-pip-rz.corner { z-index: 8; width: 16px; height: 16px; }
+      .cmp-pip-rz.n { top: 0; left: 0; right: 0; height: 8px; cursor: ns-resize; }
+      .cmp-pip-rz.s { bottom: 0; left: 0; right: 0; height: 8px; cursor: ns-resize; }
+      .cmp-pip-rz.e { top: 0; bottom: 0; right: 0; width: 8px; cursor: ew-resize; }
+      .cmp-pip-rz.w { top: 0; bottom: 0; left: 0; width: 8px; cursor: ew-resize; }
+      .cmp-pip-rz.ne { top: 0; right: 0; cursor: nesw-resize; }
+      .cmp-pip-rz.nw { top: 0; left: 0; cursor: nwse-resize; }
+      .cmp-pip-rz.se { bottom: 0; right: 0; cursor: nwse-resize; }
+      .cmp-pip-rz.sw { bottom: 0; left: 0; cursor: nesw-resize; }
+      .cmp-pip-rz.se::after {
+        content: "";
+        position: absolute;
+        right: 3px;
+        bottom: 3px;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid var(--accent-border, rgba(200, 169, 110, 0.6));
+        border-bottom: 2px solid var(--accent-border, rgba(200, 169, 110, 0.6));
+      }
+      /* when popped out, the console takes over the output panel */
+      body.pip-out #cmp-gutter-console { display: none !important; }
+      body.pip-out .cmp-out-wrap.web #cmp-console { height: auto; flex: 1; }
+
       /* ── EDITOR TABS (multiple open files) ── */
       .cmp-tabs {
         display: flex;
@@ -681,6 +764,22 @@
         justify-content: center;
       }
       .cmp-tab-x:hover { opacity: 1; background: rgba(255, 255, 255, 0.14); color: #e06060; }
+      .cmp-tab-edit {
+        border: none;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        font-size: 11px;
+        line-height: 1;
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        opacity: 0.5;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cmp-tab-edit:hover { opacity: 1; background: rgba(255, 255, 255, 0.14); color: var(--accent, #c8a96e); }
       .cmp-tab-add {
         border: none;
         background: transparent;
@@ -694,6 +793,56 @@
         height: 26px;
       }
       .cmp-tab-add:hover { color: var(--accent, #c8a96e); background: rgba(255, 255, 255, 0.06); }
+      /* inline rename input */
+      .cmp-tab-rename {
+        width: 90px;
+        background: #0f1115;
+        border: 1px solid var(--accent, #c8a96e);
+        border-radius: 4px;
+        color: #e8e8e8;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        padding: 1px 4px;
+        outline: none;
+      }
+
+      /* link-files popover */
+      #cmp-link-pop {
+        position: fixed;
+        z-index: 9400;
+        display: none;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 200px;
+        max-width: 280px;
+        padding: 8px;
+        background: var(--surface-solid, #1b1815);
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        border-radius: 10px;
+        box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+      }
+      #cmp-link-pop.open { display: flex; }
+      .cmp-link-title {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted, rgba(240, 237, 232, 0.5));
+        padding: 2px 4px 6px;
+      }
+      .cmp-link-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 6px;
+        border-radius: 7px;
+        font-size: 12px;
+        color: var(--text, #f0ede8);
+        cursor: pointer;
+      }
+      .cmp-link-row:hover { background: var(--accent-dim, rgba(200, 169, 110, 0.16)); }
+      .cmp-link-row input { accent-color: var(--accent, #c8a96e); cursor: pointer; }
+      .cmp-link-empty { font-size: 11px; color: var(--muted, rgba(240, 237, 232, 0.5)); padding: 6px; }
 
       /* quiet icon buttons for secondary actions (flat, no chunky borders) */
       .cmp-ibtn {
@@ -811,15 +960,7 @@
     <div class="cmp-bar">
       <div class="cmp-title"><span class="dot">⌨</span> Code Compiler</div>
 
-      <!-- primary: language + run -->
-      <select class="cmp-select cmp-collapsible" id="cmp-lang" title="Language">
-        <option value="python">Python</option>
-        <option value="javascript">JavaScript (Node)</option>
-        <option value="java">Java</option>
-        <option value="cpp">C++</option>
-        <option value="c">C</option>
-        <option value="web">Web (HTML / CSS / JS)</option>
-      </select>
+      <!-- primary: run (language is set per-tab by the file's extension) -->
       <button
         class="cmp-btn primary"
         id="cmp-run"
@@ -840,8 +981,6 @@
         >
           <option value="">📂</option>
         </select>
-        <button class="cmp-ibtn" id="cmp-clear" title="Clear output">🧹</button>
-        <button class="cmp-ibtn" id="cmp-full" title="Fullscreen">⛶</button>
         <!-- theme controls (☀/☾ + 🎨); themes.js wires these up -->
         <div class="theme-controls" id="themeControls">
           <button
@@ -859,7 +998,7 @@
           id="cmp-home"
           href="index.html"
           title="Back to the calculator"
-          >⌂</a
+          >🏠</a
         >
       </div>
 
@@ -885,6 +1024,13 @@
             <span class="pct" id="cmp-zoom-editor">100%</span>
             <button data-zoom="editor" data-dir="1" title="Zoom in">+</button>
           </span>
+          <button
+            class="cmp-pane-btn"
+            id="cmp-link"
+            title="Link CSS / JS tabs into this HTML page"
+          >
+            🔗
+          </button>
           <button
             class="cmp-pane-btn"
             id="cmp-stdin-toggle"
@@ -932,6 +1078,13 @@
           </span>
           <button
             class="cmp-pane-btn"
+            id="cmp-pop"
+            title="Pop the live preview into a floating window"
+          >
+            ⧉
+          </button>
+          <button
+            class="cmp-pane-btn"
             data-max="output"
             title="Maximize output / preview"
           >
@@ -945,7 +1098,7 @@
           <iframe
             id="cmp-preview"
             title="Web preview"
-            sandbox="allow-scripts allow-modals"
+            sandbox="allow-scripts allow-modals allow-forms allow-popups"
           ></iframe>
           <!-- draggable divider between preview and console (web mode) -->
           <div
@@ -979,6 +1132,25 @@
 
     <!-- restore handle: shown only while the bar is hidden -->
     <button id="cmp-bar-show" title="Show controls">▾</button>
+
+    <!-- floating live-preview window (the iframe is moved in/out of here) -->
+    <div id="cmp-pip">
+      <div class="cmp-pip-head" id="cmp-pip-head">
+        <span class="cmp-pip-title"><span class="dot">▶</span> Live preview</span>
+        <span class="cmp-pip-sp"></span>
+        <button class="cmp-pip-btn" id="cmp-pip-min" title="Minimize">▁</button>
+        <button class="cmp-pip-btn" id="cmp-pip-dock" title="Dock back into the panel">⧈</button>
+      </div>
+      <div class="cmp-pip-body" id="cmp-pip-body"></div>
+      <div class="cmp-pip-rz n" data-rz="n"></div>
+      <div class="cmp-pip-rz s" data-rz="s"></div>
+      <div class="cmp-pip-rz e" data-rz="e"></div>
+      <div class="cmp-pip-rz w" data-rz="w"></div>
+      <div class="cmp-pip-rz ne corner" data-rz="ne"></div>
+      <div class="cmp-pip-rz nw corner" data-rz="nw"></div>
+      <div class="cmp-pip-rz se corner" data-rz="se"></div>
+      <div class="cmp-pip-rz sw corner" data-rz="sw"></div>
+    </div>
 
     <div id="cmp-toast"></div>
 

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Candy Crush</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;0,800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      [data-theme="dark"] {
+        --bg: #0a0a0a; --surface: #141414; --surface2: #1d1d1d;
+        --border: rgba(255,255,255,0.1); --text: #f0ede8;
+        --muted: rgba(240,237,232,0.5); --accent: #c8a96e; --accent-text: #0a0a0a;
+        --canvas: radial-gradient(125% 125% at 0% 0%, #15110c 0%, #0a0908 60%, #060606 100%);
+      }
+      [data-theme="light"] {
+        --bg: #eae7f0; --surface: #ffffff; --surface2: #efe9e0;
+        --border: rgba(0,0,0,0.1); --text: #1a1814;
+        --muted: rgba(26,24,20,0.55); --accent: #9e7a3f; --accent-text: #ffffff;
+        --canvas: radial-gradient(125% 125% at 0% 0%, #efe9e3 0%, #e7e2ec 100%);
+      }
+      html, body { height: 100%; }
+      body {
+        background: var(--canvas);
+        color: var(--text);
+        font-family: "Nunito", sans-serif;
+        display: flex; flex-direction: column; align-items: center;
+        min-height: 100vh; padding: 18px; gap: 16px;
+        user-select: none;
+      }
+      .hud {
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        justify-content: center; width: 100%; max-width: 460px;
+      }
+      .title { font-weight: 800; font-style: italic; font-size: 22px; margin-right: auto; }
+      .title .dot { color: var(--accent); }
+      .stat {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 10px; padding: 7px 14px; text-align: center; min-width: 78px;
+      }
+      .stat .k { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+      .stat .v { font-size: 18px; font-weight: 800; color: var(--accent); }
+      button.btn {
+        border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text);
+        font-family: inherit; font-weight: 800; font-size: 12px; letter-spacing: 0.04em;
+        padding: 9px 16px; border-radius: 10px; cursor: pointer;
+      }
+      button.btn:hover { filter: brightness(1.08); }
+
+      #board {
+        display: grid; gap: 5px; padding: 10px;
+        background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+        touch-action: manipulation;
+      }
+      .cell {
+        width: var(--cs, 46px); height: var(--cs, 46px);
+        display: flex; align-items: center; justify-content: center;
+        font-size: calc(var(--cs, 46px) * 0.62); line-height: 1;
+        background: var(--surface2); border-radius: 10px; cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.18s ease;
+      }
+      .cell:hover { box-shadow: inset 0 0 0 2px var(--border); }
+      .cell.sel { box-shadow: inset 0 0 0 3px var(--accent); transform: scale(1.06); }
+      .cell.pop { animation: candyPop 0.2s ease forwards; }
+      @keyframes candyPop {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.25) rotate(10deg); }
+        100% { transform: scale(0) rotate(-24deg); opacity: 0; }
+      }
+      .cell.empty { opacity: 0; }
+
+      .msg {
+        font-size: 13px; color: var(--muted); min-height: 18px; text-align: center;
+      }
+      .msg b { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div class="hud">
+      <div class="title"><span class="dot">🍬</span> Candy Crush</div>
+      <div class="stat"><div class="k">Score</div><div class="v" id="score">0</div></div>
+      <div class="stat"><div class="k">Moves</div><div class="v" id="moves">20</div></div>
+      <button class="btn" id="restart">New game</button>
+    </div>
+    <div id="board"></div>
+    <div class="msg" id="msg">Swap two neighbours to line up <b>3+</b> of the same candy.</div>
+
+    <script>
+      (function () {
+        var W = 8, H = 8;
+        var TYPES = ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣"];
+        var board = [], grid = [], sel = null, busy = false;
+        var score = 0, moves = 20, CS = 46;
+        var boardEl = document.getElementById("board");
+        function step() { return CS + 5; } // cell size + grid gap
+
+        function rnd() { return Math.floor(Math.random() * TYPES.length); }
+        var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+        function sizeBoard() {
+          var max = Math.min(window.innerWidth - 56, 460);
+          var cs = Math.floor((max - 10 * 2 - 5 * (W - 1)) / W);
+          cs = Math.max(30, Math.min(cs, 52));
+          CS = cs;
+          document.documentElement.style.setProperty("--cs", cs + "px");
+          boardEl.style.gridTemplateColumns = "repeat(" + W + ", var(--cs))";
+        }
+
+        function build() {
+          // fill avoiding immediate matches
+          board = [];
+          for (var r = 0; r < H; r++) {
+            board[r] = [];
+            for (var c = 0; c < W; c++) {
+              var t;
+              do { t = rnd(); } while (
+                (c >= 2 && board[r][c - 1] === t && board[r][c - 2] === t) ||
+                (r >= 2 && board[r - 1][c] === t && board[r - 2][c] === t)
+              );
+              board[r][c] = t;
+            }
+          }
+          render(true);
+        }
+
+        function render(rebuild) {
+          if (rebuild) {
+            boardEl.innerHTML = "";
+            grid = [];
+            for (var r = 0; r < H; r++) {
+              grid[r] = [];
+              for (var c = 0; c < W; c++) {
+                var el = document.createElement("div");
+                el.className = "cell";
+                (function (rr, cc) {
+                  el.addEventListener("click", function () { onClick(rr, cc); });
+                })(r, c);
+                boardEl.appendChild(el);
+                grid[r][c] = el;
+              }
+            }
+          }
+          for (var r2 = 0; r2 < H; r2++) {
+            for (var c2 = 0; c2 < W; c2++) {
+              var v = board[r2][c2];
+              grid[r2][c2].textContent = v == null ? "" : TYPES[v];
+              grid[r2][c2].classList.toggle("empty", v == null);
+            }
+          }
+        }
+
+        function adjacent(a, b) {
+          return (a.r === b.r && Math.abs(a.c - b.c) === 1) ||
+                 (a.c === b.c && Math.abs(a.r - b.r) === 1);
+        }
+
+        function onClick(r, c) {
+          if (busy || moves <= 0) return;
+          if (!sel) { sel = { r: r, c: c }; grid[r][c].classList.add("sel"); return; }
+          if (sel.r === r && sel.c === c) { grid[r][c].classList.remove("sel"); sel = null; return; }
+          if (adjacent(sel, { r: r, c: c })) {
+            var from = sel; grid[from.r][from.c].classList.remove("sel");
+            sel = null;
+            trySwap(from, { r: r, c: c });
+          } else {
+            grid[sel.r][sel.c].classList.remove("sel");
+            sel = { r: r, c: c }; grid[r][c].classList.add("sel");
+          }
+        }
+
+        function swap(a, b) {
+          var t = board[a.r][a.c]; board[a.r][a.c] = board[b.r][b.c]; board[b.r][b.c] = t;
+        }
+
+        // slide the two candies toward each other's cell, then snap back
+        function swapAnim(a, b) {
+          return new Promise(function (res) {
+            var ea = grid[a.r][a.c], eb = grid[b.r][b.c], s = step();
+            var dx = (b.c - a.c) * s, dy = (b.r - a.r) * s;
+            ea.style.transition = eb.style.transition = "transform 0.16s ease";
+            ea.style.zIndex = eb.style.zIndex = 5;
+            ea.style.transform = "translate(" + dx + "px," + dy + "px)";
+            eb.style.transform = "translate(" + -dx + "px," + -dy + "px)";
+            setTimeout(function () {
+              ea.style.transition = eb.style.transition = "";
+              ea.style.transform = eb.style.transform = "";
+              ea.style.zIndex = eb.style.zIndex = "";
+              res();
+            }, 165);
+          });
+        }
+
+        async function trySwap(a, b) {
+          busy = true;
+          await swapAnim(a, b);     // visually slide them together
+          swap(a, b);               // try the swap logically (not rendered yet)
+          if (findMatches().length === 0) {
+            swap(a, b);             // invalid → revert; grid still shows the original
+            msg("No match there — try again.");
+            busy = false; return;
+          }
+          render();                 // commit the valid swap
+          moves--; document.getElementById("moves").textContent = moves;
+          await resolve();
+          busy = false;
+          if (moves <= 0) msg("Out of moves! Final score <b>" + score + "</b>. Hit New game.");
+        }
+
+        function findMatches() {
+          var hits = [];
+          for (var r = 0; r < H; r++) {
+            for (var c = 0; c < W; c++) {
+              var v = board[r][c]; if (v == null) continue;
+              // horizontal run
+              if (c <= W - 3 && board[r][c + 1] === v && board[r][c + 2] === v) {
+                var cc = c; while (cc < W && board[r][cc] === v) { hits.push(r + "," + cc); cc++; }
+              }
+              if (r <= H - 3 && board[r + 1][c] === v && board[r + 2][c] === v) {
+                var rr = r; while (rr < H && board[rr][c] === v) { hits.push(rr + "," + c); rr++; }
+              }
+            }
+          }
+          return hits;
+        }
+
+        async function resolve() {
+          while (true) {
+            var hits = findMatches();
+            if (hits.length === 0) break;
+            var uniq = {};
+            hits.forEach(function (k) { uniq[k] = 1; });
+            var keys = Object.keys(uniq);
+            score += keys.length * 10;
+            document.getElementById("score").textContent = score;
+            msg("Cleared <b>" + keys.length + "</b> candies!");
+            keys.forEach(function (k) { var p = k.split(","); grid[p[0]][p[1]].classList.add("pop"); });
+            await sleep(200);
+            keys.forEach(function (k) { var p = k.split(","); board[+p[0]][+p[1]] = null; grid[p[0]][p[1]].classList.remove("pop"); });
+            var fall = collapse(); render(); applyFall(fall); await sleep(330);
+          }
+        }
+
+        function zeros() {
+          var z = []; for (var r = 0; r < H; r++) { z[r] = []; for (var c = 0; c < W; c++) z[r][c] = 0; }
+          return z;
+        }
+        // drop survivors, spawn new candies on top; returns how far each cell fell (rows)
+        function collapse() {
+          var fall = zeros();
+          for (var c = 0; c < W; c++) {
+            var survivors = [];
+            for (var r = H - 1; r >= 0; r--) if (board[r][c] != null) survivors.push({ v: board[r][c], row: r });
+            var nr = H - 1;
+            for (var i = 0; i < survivors.length; i++) {
+              board[nr][c] = survivors[i].v; fall[nr][c] = nr - survivors[i].row; nr--;
+            }
+            for (; nr >= 0; nr--) { board[nr][c] = rnd(); fall[nr][c] = nr + 1; } // new, from off-top
+          }
+          return fall;
+        }
+        // animate each candy dropping from where it came to its new slot
+        function applyFall(fall) {
+          var s = step();
+          for (var r = 0; r < H; r++) for (var c = 0; c < W; c++) {
+            var d = fall[r][c]; if (!d) continue;
+            var el = grid[r][c];
+            el.style.transition = "none";
+            el.style.transform = "translateY(" + (-d * s) + "px)";
+            void el.offsetWidth; // reflow so the start position takes effect
+            el.style.transition = "transform 0.32s cubic-bezier(0.34,1.25,0.5,1)";
+            el.style.transform = "translateY(0)";
+            (function (e) { setTimeout(function () { e.style.transition = ""; e.style.transform = ""; }, 360); })(el);
+          }
+        }
+
+        function msg(html) { document.getElementById("msg").innerHTML = html; }
+
+        function newGame() {
+          score = 0; moves = 20; sel = null; busy = false;
+          document.getElementById("score").textContent = "0";
+          document.getElementById("moves").textContent = "20";
+          sizeBoard(); build();
+          // clear any starting cascades quietly
+          (async function () { busy = true; await resolve(); score = 0; document.getElementById("score").textContent = "0"; busy = false; msg("Swap two neighbours to line up <b>3+</b> of the same candy."); })();
+        }
+
+        document.getElementById("restart").addEventListener("click", newGame);
+        window.addEventListener("resize", function () { sizeBoard(); });
+        newGame();
+      })();
+    </script>
+  </body>
+</html>
