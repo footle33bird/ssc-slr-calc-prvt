@@ -21,6 +21,14 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css"
     />
+    <!-- editor syntax themes (selectable in the 🎨 styles panel) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/solarized.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css" />
+    <!-- autocomplete + find/replace addon styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
@@ -32,11 +40,65 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <!-- autocomplete (show-hint) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/anyword-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/javascript-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/xml-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/html-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/css-hint.min.js"></script>
+    <!-- find / replace (search) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/jump-to-line.min.js"></script>
+    <!-- code folding -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/indent-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
+    <!-- editor keymaps (Sublime / Vim) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/sublime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/vim.min.js"></script>
+    <!-- project zip export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Prettier (format JS / HTML / CSS) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/prettier@3.3.3/standalone.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prettier@3.3.3/plugins/babel.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prettier@3.3.3/plugins/estree.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prettier@3.3.3/plugins/postcss.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prettier@3.3.3/plugins/html.js"></script>
 
     <style>
       :root {
         --code-bg: #0f1115;
         --code-bg2: #15181f;
+      }
+      /* code-area theme (editor / output / console). data-code on <body> picks
+         light or dark independently of the site chrome. */
+      body[data-code="dark"] {
+        --c-edit-bg: #1e1e1e; --c-edit-fg: #d4d4d4; --c-gutter: #2a2a2a;
+        --c-ln: #6e7681; --c-ln-active: #c6c6c6; --c-activeline: rgba(255, 255, 255, 0.035);
+        --c-cursor: #aeafad; --c-sb-thumb: #424242; --c-sel: #264f78;
+        --c-out-bg: #0f1115; --c-out-fg: #d4d7dd;
+        --c-con-bg: #15181f; --c-con-line: rgba(255, 255, 255, 0.08);
+        --c-panel-bg: #181818; --c-panel-line: #2a2a2a;
+        --c-tab-fg: #9a9a9a; --c-tab-hover: rgba(255, 255, 255, 0.05);
+        --c-tab-active-bg: #1e1e1e; --c-tab-active-fg: #e8e8e8;
+      }
+      body[data-code="light"] {
+        --c-edit-bg: #ffffff; --c-edit-fg: #1f2328; --c-gutter: #e6e8eb;
+        --c-ln: #b0b6bd; --c-ln-active: #3a3f44; --c-activeline: rgba(0, 0, 0, 0.045);
+        --c-cursor: #1f2328; --c-sb-thumb: #c4c8cd; --c-sel: #add6ff;
+        --c-out-bg: #f6f7f9; --c-out-fg: #24292f;
+        --c-con-bg: #eef0f3; --c-con-line: rgba(0, 0, 0, 0.08);
+        --c-panel-bg: #e9ebee; --c-panel-line: #dadde1;
+        --c-tab-fg: #6a737d; --c-tab-hover: rgba(0, 0, 0, 0.05);
+        --c-tab-active-bg: #ffffff; --c-tab-active-fg: #1f2328;
       }
       * {
         box-sizing: border-box;
@@ -86,6 +148,13 @@
       }
       .cmp-title .dot {
         color: var(--accent, #c8a96e);
+      }
+      #cmp-logo {
+        height: 28px;
+        width: auto;
+        vertical-align: middle;
+        border-radius: 6px;
+        display: inline-block;
       }
 
       /* shared compact control height so buttons + selects line up cleanly */
@@ -237,10 +306,24 @@
       .cmp-pane-head .spacer {
         margin-left: auto;
       }
+      /* the labels may truncate so the controls (zoom, icons) always fit */
+      #cmp-editor-label,
+      #cmp-out-label {
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .cmp-status {
         font-size: 10px;
         letter-spacing: 0.06em;
         text-transform: none;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .cmp-status.ok {
         color: var(--success, #6ec88a);
@@ -252,17 +335,17 @@
         color: var(--accent, #c8a96e);
       }
 
-      /* editor area — tuned to read like VS Code's dark editor */
+      /* editor area — follows the code-area theme (var-driven) */
       .cmp-editor-wrap {
         flex: 1;
         min-height: 0;
         position: relative;
-        background: #1e1e1e;
+        background: var(--c-edit-bg);
       }
       .CodeMirror {
         height: 100% !important;
-        background: #1e1e1e !important;
-        color: #d4d4d4;
+        background: var(--c-edit-bg) !important;
+        color: var(--c-edit-fg);
         font-family: "JetBrains Mono", ui-monospace, "DM Mono", monospace;
         font-size: 13.5px;
         line-height: 1.6;
@@ -270,36 +353,35 @@
       .CodeMirror-lines {
         padding: 10px 0;
       }
-      /* gutter / line numbers like VS Code */
       .CodeMirror-gutters {
-        background: #1e1e1e !important;
-        border-right: 1px solid #2a2a2a !important;
+        background: var(--c-edit-bg) !important;
+        border-right: 1px solid var(--c-gutter) !important;
       }
       .CodeMirror-linenumber {
-        color: #6e7681;
+        color: var(--c-ln);
         padding: 0 10px 0 8px;
       }
       .CodeMirror-activeline-background {
-        background: rgba(255, 255, 255, 0.035) !important;
+        background: var(--c-activeline) !important;
       }
       .CodeMirror-activeline .CodeMirror-linenumber {
-        color: #c6c6c6;
+        color: var(--c-ln-active);
       }
       .CodeMirror-cursor {
-        border-left: 1.6px solid #aeafad !important;
+        border-left: 1.6px solid var(--c-cursor) !important;
       }
       .CodeMirror-selected {
-        background: #264f78 !important;
+        background: var(--c-sel) !important;
       }
       .CodeMirror-focused .CodeMirror-selected {
-        background: #264f78 !important;
+        background: var(--c-sel) !important;
       }
       .CodeMirror-matchingbracket {
         color: #ffd700 !important;
         border-bottom: 1px solid #ffd700;
         font-weight: 700;
       }
-      /* slim VS Code-style scrollbars inside the editor */
+      /* slim scrollbars inside the editor */
       .CodeMirror-vscrollbar,
       .CodeMirror-hscrollbar {
         scrollbar-width: thin;
@@ -311,16 +393,16 @@
       }
       .CodeMirror-vscrollbar::-webkit-scrollbar-thumb,
       .CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
-        background: #424242;
-        border: 3px solid #1e1e1e;
+        background: var(--c-sb-thumb);
+        border: 3px solid var(--c-edit-bg);
         border-radius: 10px;
       }
 
       /* stdin */
       .cmp-stdin {
         flex-shrink: 0;
-        border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-        background: var(--code-bg2, #15181f);
+        border-top: 1px solid var(--c-con-line);
+        background: var(--c-con-bg);
         display: none;
       }
       .cmp-stdin.show {
@@ -334,9 +416,364 @@
         outline: none;
         padding: 10px 14px;
         background: transparent;
-        color: var(--text, #f0ede8);
+        color: var(--c-out-fg);
         font-family: "JetBrains Mono", monospace;
         font-size: 12.5px;
+      }
+      /* args + stdin presets row */
+      .cmp-stdin-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--c-con-line);
+      }
+      .cmp-stdin-row #cmp-args {
+        flex: 1;
+        min-width: 0;
+        background: var(--c-edit-bg);
+        color: var(--c-edit-fg);
+        border: 1px solid var(--c-panel-line);
+        border-radius: 6px;
+        padding: 5px 9px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11.5px;
+        outline: none;
+      }
+      .cmp-mini-sel,
+      .cmp-mini-btn {
+        height: 28px;
+        border: 1px solid var(--c-panel-line);
+        background: var(--c-panel-bg);
+        color: var(--c-edit-fg);
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 0 8px;
+        cursor: pointer;
+        outline: none;
+        flex-shrink: 0;
+      }
+      .cmp-mini-btn:hover,
+      .cmp-mini-sel:hover { border-color: var(--accent, #c8a96e); color: var(--accent, #c8a96e); }
+
+      /* grouped dropdown menu (Files) */
+      .cmp-menu-wrap { position: relative; display: inline-flex; }
+      .cmp-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 9300;
+        display: none;
+        flex-direction: column;
+        min-width: 248px;
+        padding: 6px;
+        background: var(--surface-solid, #1b1815);
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        border-radius: 10px;
+        box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+        animation: cmp-help-in 0.14s ease;
+      }
+      .cmp-menu.open { display: flex; }
+      .cmp-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        color: var(--text, #f0ede8);
+        font-family: "Nunito", sans-serif;
+        font-size: 12.5px;
+        font-weight: 700;
+        padding: 8px 10px;
+        border-radius: 7px;
+        cursor: pointer;
+      }
+      .cmp-menu-item:hover { background: var(--accent-dim, rgba(200, 169, 110, 0.16)); color: var(--accent, #c8a96e); }
+      .cmp-menu-row { justify-content: space-between; white-space: nowrap; gap: 12px; cursor: default; }
+      #cmp-files-menu select {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 96px;
+        max-width: 130px;
+        height: 28px;
+        padding: 0 9px;
+        background: var(--input-bg, #111);
+        background-image: none;
+        color: var(--text, #f0ede8);
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .cmp-menu-sep { height: 1px; background: var(--border, rgba(255, 255, 255, 0.1)); margin: 4px 2px; }
+
+      /* AI chat popup */
+      #cmp-ai-chat {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 9550;
+        width: 340px;
+        height: 460px;
+        max-height: 80vh;
+        display: none;
+        flex-direction: column;
+        background: var(--surface-solid, #1b1815);
+        border: 1px solid var(--accent-border, rgba(200, 169, 110, 0.4));
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+        font-family: "Nunito", sans-serif;
+      }
+      #cmp-ai-chat.open { display: flex; animation: cmp-help-in 0.18s ease; }
+      #cmp-ai-chat.min { height: auto !important; }
+      #cmp-ai-chat.min .cmp-ai-log,
+      #cmp-ai-chat.min .cmp-ai-input,
+      #cmp-ai-chat.min .cmp-ai-rz { display: none; }
+      /* resize handles (anchored bottom-right, so it grows up/left) */
+      .cmp-ai-rz { position: absolute; z-index: 5; }
+      .cmp-ai-rz.top { top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; }
+      .cmp-ai-rz.left { top: 0; bottom: 0; left: 0; width: 6px; cursor: ew-resize; }
+      .cmp-ai-rz.corner { top: 0; left: 0; width: 14px; height: 14px; cursor: nwse-resize; z-index: 6; }
+      .cmp-ai-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 12px;
+        font-weight: 800;
+        font-style: italic;
+        background: var(--surface2, #15181f);
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+        color: var(--text, #f0ede8);
+        cursor: grab;
+        touch-action: none;
+      }
+      .cmp-ai-head:active { cursor: grabbing; }
+      .cmp-ai-head button {
+        border: none;
+        background: transparent;
+        color: var(--muted, rgba(240, 237, 232, 0.6));
+        cursor: pointer;
+        font-size: 14px;
+        width: 26px;
+        height: 24px;
+        border-radius: 6px;
+      }
+      .cmp-ai-head button:hover { background: var(--accent-dim, rgba(200, 169, 110, 0.16)); color: var(--accent, #c8a96e); }
+      .cmp-ai-log {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 13px;
+      }
+      .cmp-ai-msg { max-width: 92%; padding: 8px 11px; border-radius: 12px; line-height: 1.5; word-break: break-word; }
+      .cmp-ai-msg.user { align-self: flex-end; background: var(--accent, #c8a96e); color: var(--accent-text, #0a0a0a); border-bottom-right-radius: 4px; }
+      .cmp-ai-msg.ai { align-self: flex-start; background: var(--surface2, #15181f); color: var(--text, #f0ede8); border: 1px solid var(--border, rgba(255, 255, 255, 0.1)); border-bottom-left-radius: 4px; }
+      .cmp-ai-code {
+        background: #0f1115;
+        color: #d4d7dd;
+        border-radius: 8px;
+        padding: 9px 11px;
+        margin: 6px 0;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11.5px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-x: auto;
+      }
+      .cmp-ai-actions { display: flex; gap: 6px; margin-top: 6px; }
+      .cmp-ai-actions button {
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        background: transparent;
+        color: var(--text, #f0ede8);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 9px;
+        border-radius: 7px;
+        cursor: pointer;
+      }
+      .cmp-ai-actions button:hover { border-color: var(--accent, #c8a96e); color: var(--accent, #c8a96e); }
+      .cmp-ai-think { color: var(--muted, rgba(240, 237, 232, 0.55)); font-style: italic; }
+      .cmp-ai-err { color: var(--danger, #e06060); }
+      .cmp-ai-input {
+        display: flex;
+        gap: 6px;
+        padding: 9px;
+        border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+      }
+      .cmp-ai-input textarea {
+        flex: 1;
+        resize: none;
+        height: 42px;
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        border-radius: 8px;
+        background: var(--input-bg, #111);
+        color: var(--text, #f0ede8);
+        padding: 8px 10px;
+        font-family: "Nunito", sans-serif;
+        font-size: 13px;
+        outline: none;
+      }
+      .cmp-ai-input textarea:focus { border-color: var(--accent-border, rgba(200, 169, 110, 0.5)); }
+      .cmp-ai-input button {
+        flex-shrink: 0;
+        width: 42px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent, #c8a96e);
+        color: var(--accent-text, #0a0a0a);
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .cmp-ai-input button:hover { filter: brightness(1.08); }
+
+      /* grey inline ghost suggestion (snippets + AI); Tab accepts it */
+      .cmp-ghost {
+        opacity: 0.42;
+        font-style: italic;
+        white-space: pre-wrap;
+        pointer-events: none;
+        color: var(--c-edit-fg);
+      }
+
+      /* fold gutter markers themed to the editor */
+      .CodeMirror-foldgutter { width: 14px; }
+      .CodeMirror-foldgutter-open,
+      .CodeMirror-foldgutter-folded { color: var(--c-ln); cursor: pointer; }
+      .CodeMirror-foldgutter-open:hover,
+      .CodeMirror-foldgutter-folded:hover { color: var(--accent, #c8a96e); }
+      .CodeMirror-foldmarker {
+        color: var(--accent, #c8a96e);
+        background: var(--c-activeline);
+        border-radius: 4px;
+        padding: 0 4px;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      /* keyboard-shortcuts help overlay */
+      #cmp-help-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9600;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+      #cmp-help-overlay.open { display: flex; }
+      .cmp-help-card {
+        width: min(440px, 92vw);
+        max-height: 88vh;
+        overflow-y: auto;
+        background: var(--surface-solid, #1b1815);
+        color: var(--text, #f0ede8);
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        border-radius: 14px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+        font-family: "Nunito", sans-serif;
+        animation: cmp-help-in 0.18s ease;
+      }
+      @keyframes cmp-help-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
+      .cmp-help-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        font-weight: 800;
+        font-style: italic;
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+        position: sticky;
+        top: 0;
+        background: var(--surface-solid, #1b1815);
+        z-index: 1;
+      }
+      .cmp-help-head button {
+        border: none;
+        background: transparent;
+        color: var(--muted, rgba(240, 237, 232, 0.6));
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .cmp-help-head button:hover { color: var(--danger, #e06060); }
+      #cmp-help-logo { height: 40px; width: auto; vertical-align: middle; border-radius: 7px; margin-right: 10px; }
+      .cmp-logo-fallback { line-height: 1; vertical-align: middle; }
+      .cmp-title .cmp-logo-fallback { font-size: 22px; margin-right: 2px; }
+      .cmp-help-head .cmp-logo-fallback { font-size: 30px; margin-right: 8px; }
+      .cmp-help-tut {
+        padding: 14px 18px 4px;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: var(--muted, rgba(240, 237, 232, 0.85));
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+      }
+      .cmp-help-tut-title {
+        font-weight: 800;
+        font-style: italic;
+        color: var(--text, #f0ede8);
+        margin: 6px 0 6px;
+      }
+      .cmp-help-tut ol { margin: 0 0 4px; padding-left: 20px; }
+      .cmp-help-tut li { margin-bottom: 7px; }
+      .cmp-help-tut p { margin: 0 0 10px; }
+      .cmp-help-tut b { color: var(--text, #f0ede8); }
+      .cmp-help-tut code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        background: var(--surface2, #15181f);
+        border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+        border-radius: 5px;
+        padding: 1px 5px;
+        color: var(--accent, #c8a96e);
+      }
+
+      .cmp-help-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 9px 14px;
+        align-items: center;
+        padding: 16px 18px;
+        font-size: 13px;
+      }
+      .cmp-help-grid kbd {
+        justify-self: start;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        background: var(--surface2, #15181f);
+        border: 1px solid var(--border2, rgba(255, 255, 255, 0.18));
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        padding: 3px 8px;
+        white-space: nowrap;
+        color: var(--accent, #c8a96e);
+      }
+      .cmp-help-grid span { color: var(--muted, rgba(240, 237, 232, 0.75)); }
+      .cmp-help-keys {
+        padding: 14px 18px;
+        border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--muted, rgba(240, 237, 232, 0.8));
+      }
+      .cmp-help-keys-title { font-weight: 800; font-style: italic; color: var(--text, #f0ede8); margin-bottom: 8px; }
+      .cmp-help-keys p { margin: 0 0 8px; }
+      .cmp-help-keys a { color: var(--accent, #c8a96e); font-weight: 700; }
+      .cmp-help-foot {
+        padding: 12px 18px 16px;
+        font-size: 11px;
+        color: var(--muted, rgba(240, 237, 232, 0.55));
+        border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
       }
 
       /* output */
@@ -345,7 +782,7 @@
         min-height: 0;
         display: flex;
         flex-direction: column;
-        background: var(--code-bg, #0f1115);
+        background: var(--c-out-bg);
       }
       #cmp-output {
         flex: 1;
@@ -357,7 +794,7 @@
         line-height: 1.6;
         white-space: pre-wrap;
         word-break: break-word;
-        color: #d4d7dd;
+        color: var(--c-out-fg);
       }
       #cmp-output .err {
         color: #ff8d7a;
@@ -387,8 +824,8 @@
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
-        border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-        background: var(--code-bg2, #15181f);
+        border-top: 1px solid var(--c-con-line);
+        background: var(--c-con-bg);
       }
       .cmp-console-head {
         display: flex;
@@ -399,8 +836,8 @@
         font-weight: 700;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: var(--muted, rgba(240, 237, 232, 0.5));
-        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.07));
+        color: var(--c-tab-fg);
+        border-bottom: 1px solid var(--c-con-line);
         flex-shrink: 0;
       }
       .cmp-console-head .spacer {
@@ -441,7 +878,7 @@
         letter-spacing: 0.08em;
       }
       .cmp-cl-line.log {
-        color: #d4d7dd;
+        color: var(--c-out-fg);
       }
       .cmp-cl-line.info {
         color: #7fb4ff;
@@ -579,6 +1016,66 @@
         background: var(--accent, #c8a96e);
       }
 
+      /* error line markers from the run's stderr */
+      .cmp-errors { width: 14px; }
+      .cmp-error-gutter {
+        color: #e06060;
+        font-size: 11px;
+        line-height: 1;
+        cursor: pointer;
+        text-align: center;
+      }
+      .cmp-error-line { background: rgba(224, 96, 96, 0.13); }
+      .cmp-error-text { text-decoration: wavy underline rgba(224, 96, 96, 0.9); text-decoration-skip-ink: none; }
+
+      /* drag-and-drop files onto the editor */
+      .cmp-editor-wrap.cmp-drop { outline: 2px dashed var(--accent, #c8a96e); outline-offset: -6px; }
+
+      /* find / replace dialog (search addon) */
+      .CodeMirror-dialog {
+        background: var(--c-panel-bg);
+        color: var(--c-edit-fg);
+        border-bottom: 1px solid var(--c-panel-line);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        padding: 5px 10px;
+      }
+      .CodeMirror-dialog input {
+        background: var(--c-edit-bg);
+        color: var(--c-edit-fg);
+        border: 1px solid var(--c-panel-line);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: inherit;
+        outline: none;
+      }
+      /* autocomplete dropdown (show-hint addon) */
+      .CodeMirror-hints {
+        background: var(--c-panel-bg);
+        border: 1px solid var(--c-panel-line);
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        z-index: 9999;
+      }
+      .CodeMirror-hint { color: var(--c-edit-fg); padding: 2px 10px; }
+      li.CodeMirror-hint-active { background: var(--accent, #c8a96e); color: var(--accent-text, #0a0a0a); }
+
+      /* smooth crossfade of the code surfaces when the theme is switched */
+      body.code-anim .cmp-editor-wrap,
+      body.code-anim .CodeMirror,
+      body.code-anim .CodeMirror-gutters,
+      body.code-anim .cmp-out-wrap,
+      body.code-anim #cmp-output,
+      body.code-anim #cmp-console,
+      body.code-anim .cmp-console-head,
+      body.code-anim .cmp-tabs,
+      body.code-anim .cmp-tab,
+      body.code-anim .cmp-stdin {
+        transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease !important;
+      }
+
       /* per-panel zoom — a tidy segmented pill */
       .cmp-zoom {
         display: inline-flex;
@@ -587,6 +1084,7 @@
         border-radius: 7px;
         overflow: hidden;
         height: 24px;
+        flex-shrink: 0; /* never compress — keeps the + visible */
       }
       .cmp-zoom button {
         width: 24px;
@@ -720,8 +1218,8 @@
         gap: 2px;
         flex-shrink: 0;
         padding: 5px 6px 0 6px;
-        background: #181818;
-        border-bottom: 1px solid #2a2a2a;
+        background: var(--c-panel-bg);
+        border-bottom: 1px solid var(--c-panel-line);
         overflow-x: auto;
         scrollbar-width: thin;
       }
@@ -733,7 +1231,7 @@
         padding: 6px 7px 6px 11px;
         border-radius: 8px 8px 0 0;
         background: transparent;
-        color: #9a9a9a;
+        color: var(--c-tab-fg);
         font-family: "JetBrains Mono", ui-monospace, monospace;
         font-size: 11px;
         white-space: nowrap;
@@ -742,11 +1240,11 @@
         border-bottom: none;
         transition: background 0.14s ease, color 0.14s ease;
       }
-      .cmp-tab:hover { background: rgba(255, 255, 255, 0.05); color: #d4d4d4; }
+      .cmp-tab:hover { background: var(--c-tab-hover); color: var(--c-tab-active-fg); }
       .cmp-tab.active {
-        background: #1e1e1e;
-        color: #e8e8e8;
-        border-color: #2a2a2a;
+        background: var(--c-tab-active-bg);
+        color: var(--c-tab-active-fg);
+        border-color: var(--c-panel-line);
       }
       .cmp-tab-x {
         border: none;
@@ -763,7 +1261,7 @@
         align-items: center;
         justify-content: center;
       }
-      .cmp-tab-x:hover { opacity: 1; background: rgba(255, 255, 255, 0.14); color: #e06060; }
+      .cmp-tab-x:hover { opacity: 1; background: var(--c-tab-hover); color: #e06060; }
       .cmp-tab-edit {
         border: none;
         background: transparent;
@@ -779,11 +1277,11 @@
         align-items: center;
         justify-content: center;
       }
-      .cmp-tab-edit:hover { opacity: 1; background: rgba(255, 255, 255, 0.14); color: var(--accent, #c8a96e); }
+      .cmp-tab-edit:hover { opacity: 1; background: var(--c-tab-hover); color: var(--accent, #c8a96e); }
       .cmp-tab-add {
         border: none;
         background: transparent;
-        color: #9a9a9a;
+        color: var(--c-tab-fg);
         cursor: pointer;
         font-size: 16px;
         width: 28px;
@@ -792,14 +1290,14 @@
         align-self: center;
         height: 26px;
       }
-      .cmp-tab-add:hover { color: var(--accent, #c8a96e); background: rgba(255, 255, 255, 0.06); }
+      .cmp-tab-add:hover { color: var(--accent, #c8a96e); background: var(--c-tab-hover); }
       /* inline rename input */
       .cmp-tab-rename {
         width: 90px;
-        background: #0f1115;
+        background: var(--c-edit-bg);
         border: 1px solid var(--accent, #c8a96e);
         border-radius: 4px;
-        color: #e8e8e8;
+        color: var(--c-edit-fg);
         font-family: "JetBrains Mono", monospace;
         font-size: 11px;
         padding: 1px 4px;
@@ -887,10 +1385,12 @@
       /* compact snippets select (icon-only) */
       #cmp-snippets.cmp-mini {
         min-width: 0;
-        width: 50px;
-        max-width: 50px;
-        padding: 0 20px 0 9px;
+        width: 40px;
+        max-width: 40px;
+        padding: 0 8px;
         height: 32px;
+        text-align: center;
+        background-image: none; /* drop the dropdown chevron */
       }
 
       /* fold the theme + video launchers into the icon-button look */
@@ -958,7 +1458,15 @@
   <body>
     <!-- TOP BAR -->
     <div class="cmp-bar">
-      <div class="cmp-title"><span class="dot">⌨</span> Code Compiler</div>
+      <div class="cmp-title">
+        <img
+          id="cmp-logo"
+          src="pepe-hacker.gif"
+          alt=""
+          onerror="var s=document.createElement('span');s.className='cmp-logo-fallback';s.textContent='💻';this.replaceWith(s);"
+        />
+        Code Compiler
+      </div>
 
       <!-- primary: run (language is set per-tab by the file's extension) -->
       <button
@@ -971,16 +1479,28 @@
 
       <span class="cmp-divider cmp-collapsible"></span>
 
-      <!-- secondary: quiet icon buttons -->
+      <!-- secondary: grouped icon controls -->
       <div class="cmp-bar-utils cmp-collapsible" id="cmp-bar-utils">
-        <button class="cmp-ibtn" id="cmp-save" title="Save snippet">💾</button>
-        <select
-          class="cmp-select cmp-mini"
-          id="cmp-snippets"
-          title="Load a saved snippet"
-        >
-          <option value="">📂</option>
-        </select>
+        <!-- Files: save / open / download / upload, all in one dropdown -->
+        <div class="cmp-menu-wrap">
+          <button class="cmp-ibtn" id="cmp-files" title="Files — save, open, download, upload">📁</button>
+          <div class="cmp-menu" id="cmp-files-menu">
+            <button class="cmp-menu-item" id="cmp-save">💾 Save workspace</button>
+            <label class="cmp-menu-item cmp-menu-row">📂 Open saved
+              <select class="cmp-select" id="cmp-snippets"><option value="">choose…</option></select>
+            </label>
+            <div class="cmp-menu-sep"></div>
+            <button class="cmp-menu-item" id="cmp-download">⬇ Download this file</button>
+            <button class="cmp-menu-item" id="cmp-zip">📦 Download project (.zip)</button>
+            <button class="cmp-menu-item" id="cmp-upload">⬆ Open file(s) from computer</button>
+          </div>
+        </div>
+        <input type="file" id="cmp-fileinput" multiple style="display:none" />
+        <button class="cmp-ibtn" id="cmp-ai" title="AI — click to chat, Ctrl+\ to complete, right-click for key">🤖</button>
+        <button class="cmp-ibtn" id="cmp-help" title="Help & keyboard shortcuts (?)">❓</button>
+
+        <span class="cmp-divider"></span>
+
         <!-- theme controls (☀/☾ + 🎨); themes.js wires these up -->
         <div class="theme-controls" id="themeControls">
           <button
@@ -1026,6 +1546,20 @@
           </span>
           <button
             class="cmp-pane-btn"
+            id="cmp-format"
+            title="Format code (Shift+Alt+F) — JS / HTML / CSS"
+          >
+            ✨
+          </button>
+          <button
+            class="cmp-pane-btn"
+            id="cmp-wrap"
+            title="Toggle word wrap for long lines"
+          >
+            ⭿
+          </button>
+          <button
+            class="cmp-pane-btn"
             id="cmp-link"
             title="Link CSS / JS tabs into this HTML page"
           >
@@ -1034,9 +1568,9 @@
           <button
             class="cmp-pane-btn"
             id="cmp-stdin-toggle"
-            title="Program input (stdin) — what your code reads from input()/cin"
+            title="Program input (stdin) + command-line arguments"
           >
-            ⌨
+            📥
           </button>
           <button
             class="cmp-pane-btn"
@@ -1051,9 +1585,16 @@
           <textarea id="cmp-code"></textarea>
         </div>
         <div class="cmp-stdin" id="cmp-stdin">
+          <div class="cmp-stdin-row">
+            <input id="cmp-args" placeholder="Command-line arguments (space-separated)…" />
+            <select class="cmp-mini-sel" id="cmp-stdin-presets" title="Saved input presets">
+              <option value="">Presets…</option>
+            </select>
+            <button class="cmp-mini-btn" id="cmp-stdin-save" title="Save current input + args as a preset">Save</button>
+          </div>
           <textarea
             id="cmp-stdin-text"
-            placeholder="Standard input (stdin) — one line per prompt…"
+            placeholder="Standard input (stdin) — what your program reads from input()/cin/scanf…"
           ></textarea>
         </div>
       </div>
@@ -1076,6 +1617,13 @@
             <span class="pct" id="cmp-zoom-output">100%</span>
             <button data-zoom="output" data-dir="1" title="Zoom in">+</button>
           </span>
+          <button
+            class="cmp-pane-btn"
+            id="cmp-copy"
+            title="Copy the output to the clipboard"
+          >
+            📋
+          </button>
           <button
             class="cmp-pane-btn"
             id="cmp-pop"
@@ -1153,6 +1701,90 @@
     </div>
 
     <div id="cmp-toast"></div>
+
+    <!-- AI chat popup (ask it to write code) -->
+    <div id="cmp-ai-chat">
+      <div class="cmp-ai-rz top"></div>
+      <div class="cmp-ai-rz left"></div>
+      <div class="cmp-ai-rz corner"></div>
+      <div class="cmp-ai-head">
+        <span>🤖 Ask AI</span>
+        <span class="sp" style="flex:1"></span>
+        <button id="cmp-ai-key" title="Change API key / provider">🔑</button>
+        <button id="cmp-ai-clear" title="Clear chat">🧹</button>
+        <button id="cmp-ai-min" title="Minimize">▁</button>
+        <button id="cmp-ai-x" title="Close">✕</button>
+      </div>
+      <div class="cmp-ai-log" id="cmp-ai-log"></div>
+      <div class="cmp-ai-input">
+        <textarea id="cmp-ai-text" placeholder="Ask the AI to write code…  (Enter to send, Shift+Enter for newline)"></textarea>
+        <button id="cmp-ai-send" title="Send">➤</button>
+      </div>
+    </div>
+
+    <!-- keyboard shortcuts help overlay -->
+    <div id="cmp-help-overlay">
+      <div class="cmp-help-card">
+        <div class="cmp-help-head">
+          <span>
+            <img id="cmp-help-logo" src="pepe-hacker.gif" alt="" onerror="var s=document.createElement('span');s.className='cmp-logo-fallback';s.textContent='💻';this.replaceWith(s);" />
+            Keyboard shortcuts
+          </span>
+          <button id="cmp-help-close" title="Close">✕</button>
+        </div>
+
+        <div class="cmp-help-tut">
+          <div class="cmp-help-tut-title">✨ Getting started</div>
+          <ol>
+            <li><b>Pick a language by naming your file.</b> Each tab is a file, and its extension sets the language — <code>main.py</code> → Python, <code>index.html</code> → HTML, <code>app.js</code> → JavaScript. Make a new file with <b>+</b>, rename it with the <b>✎</b> on the tab.</li>
+            <li><b>Write your code</b> in the editor on the left. As you type, grey suggestions appear — press <b>Tab</b> to accept one. (Try typing <code>!</code> in an HTML file.)</li>
+            <li><b>Run it</b> with <b>▶ Run</b> (or <b>Ctrl/⌘ + Enter</b>). The result shows on the right, and any error lines get marked in your code.</li>
+            <li><b>Need to give input?</b> Open <b>📥</b> to type standard input / command-line arguments before running.</li>
+          </ol>
+
+          <div class="cmp-help-tut-title">🌐 Web pages (HTML / CSS / JS)</div>
+          <p>Make an HTML file plus CSS/JS files, and connect them with normal tags like <code>&lt;link href="styles.css"&gt;</code> / <code>&lt;script src="app.js"&gt;</code> (or the <b>🔗</b> button). The preview updates <b>live</b> as you type, and <b>⧉</b> pops it into a floating window.</p>
+
+          <div class="cmp-help-tut-title">🎨 Make it yours</div>
+          <p>The <b>🎨</b> panel changes the editor theme (presets, your own custom colours, light/dark) and keybindings (Default / Sublime / Vim). Drag the middle divider to resize panels, and use <b>− / +</b> to zoom each one.</p>
+
+          <div class="cmp-help-tut-title">💾 Save, share & AI</div>
+          <p><b>💾</b> saves all your open files together; <b>📂</b> reopens them. <b>⬇ / 📦</b> download a file or the whole project, <b>⬆</b> opens files from your computer. <b>🤖</b> chats with AI to write code for you (uses your own key — see below).</p>
+        </div>
+
+        <div class="cmp-help-grid">
+          <kbd>!&nbsp;then&nbsp;Tab</kbd><span>Expand HTML5 skeleton (in an HTML file)</span>
+          <kbd>type&nbsp;+&nbsp;Tab</kbd><span>Accept the grey ghost suggestion (snippets: clg, for, main, def, sout, cout…)</span>
+          <kbd>Ctrl/⌘ + \</kbd><span>AI completion (uses your OpenAI/Gemini key)</span>
+          <kbd>Ctrl/⌘ + Enter</kbd><span>Run code</span>
+          <kbd>Ctrl/⌘ + Space</kbd><span>Autocomplete menu</span>
+          <kbd>Ctrl/⌘ + F</kbd><span>Find</span>
+          <kbd>Ctrl + G</kbd><span>Find next</span>
+          <kbd>Ctrl + H</kbd><span>Replace</span>
+          <kbd>Shift + Alt + F</kbd><span>Format code (JS/HTML/CSS)</span>
+          <kbd>Ctrl/⌘ + Q</kbd><span>Fold / unfold block at cursor</span>
+          <kbd>Esc</kbd><span>Dismiss ghost / close dialogs / restore a maximized pane</span>
+        </div>
+        <div class="cmp-help-keys">
+          <div class="cmp-help-keys-title">🤖 Setting up AI (use your own key)</div>
+          <p>
+            <b>ChatGPT:</b> open
+            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>,
+            log in, click <b>“Create new secret key”</b>, then <b>copy</b> the key and paste it here (the 🔑 button).
+            Save the key somewhere safe — OpenAI shows it only once.
+          </p>
+          <p>
+            <b>Gemini:</b> open
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>,
+            log in, then <b>Create API key</b> and paste it here (the 🔑 button).
+          </p>
+        </div>
+        <div class="cmp-help-foot">
+          🤖 Click the robot to chat (or set up AI). ✎ / double-click a tab to rename it.
+          Editor theme, custom colours &amp; keybindings live in the 🎨 styles panel.
+        </div>
+      </div>
+    </div>
 
     <!-- theme engine + draggable video player; their launchers are restyled as
          quiet icon buttons inside the top bar's utility group -->
