@@ -175,6 +175,9 @@
       display: flex;
       animation: mgFadeIn 0.2s ease;
     }
+    /* hide the page's theme controls while a game is open so they don't
+       overlap the modal's Fullscreen / Close buttons */
+    body.mg-open #themeControls { display: none !important; }
     @keyframes mgFadeIn { from{opacity:0} to{opacity:1} }
 
     /* ── MODAL ── */
@@ -660,6 +663,7 @@
     label.textContent = g.icon + " " + g.name;
     frame.src = g.file;
     overlay.classList.add("open");
+    document.body.classList.add("mg-open");
     document.body.style.overflow = "hidden";
     // auto-fullscreen on small screens, or for retro/emulated games
     // (they need the room to scale up)
@@ -670,6 +674,7 @@
 
   window.mgClose = function () {
     overlay.classList.remove("open");
+    document.body.classList.remove("mg-open");
     setTimeout(() => {
       frame.src = "about:blank";
     }, 250);

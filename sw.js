@@ -10,13 +10,13 @@
  * Because it's network-first, you normally never need to touch this file again.
  * (Bumping VERSION just forces a one-time cleanup of the offline cache.)
  */
-const VERSION = "2026-05-26";
+const VERSION = "2026-05-27";
 const CACHE = "site-cache-" + VERSION;
 
 // A fresh install (no previous worker) activates right away; an *update*
 // waits until the page tells us to take over (via the Refresh banner).
 self.addEventListener("install", () => {
-  self.skipWaiting(); // always take over immediately, never wait for tab close
+  if (!self.registration.active) self.skipWaiting();
 });
 
 // The page posts this when the user clicks "Refresh" on the update banner.
