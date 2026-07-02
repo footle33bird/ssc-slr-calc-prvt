@@ -1,51 +1,17 @@
+
 const MONTHS = [
-  {
-    name: "იანვარი",
-    short: "JAN",
-    hours: 144,
-    rates: [9.01, 9.73, 9.91],
-  },
-  {
-    name: "თებერვალი",
-    short: "FEB",
-    hours: 160,
-    rates: [8.11, 8.76, 8.92],
-  },
-  { name: "მარტი", short: "MAR", hours: 168, rates: [7.72, 8.34, 8.49] },
-  { name: "აპრილი", short: "APR", hours: 152, rates: [8.54, 9.22, 9.39] },
-  { name: "მაისი", short: "MAY", hours: 152, rates: [8.54, 9.22, 9.39] },
-  { name: "ივნისი", short: "JUN", hours: 176, rates: [7.37, 7.96, 8.11] },
-  { name: "ივლისი", short: "JUL", hours: 184, rates: [7.05, 7.61, 7.76] },
-  {
-    name: "აგვისტო",
-    short: "AUG",
-    hours: 160,
-    rates: [8.11, 8.76, 8.92],
-  },
-  {
-    name: "სექტემბერი",
-    short: "SEP",
-    hours: 176,
-    rates: [7.37, 7.96, 8.11],
-  },
-  {
-    name: "ოქტომბერი",
-    short: "OCT",
-    hours: 168,
-    rates: [7.72, 8.34, 8.49],
-  },
-  {
-    name: "ნოემბერი",
-    short: "NOV",
-    hours: 160,
-    rates: [8.11, 8.76, 8.92],
-  },
-  {
-    name: "დეკემბერი",
-    short: "DEC",
-    hours: 184,
-    rates: [7.05, 7.61, 7.76],
-  },
+  { name: "იანვარი",   short: "JAN", hours: 144, rates: [9.28, 9.96] },
+  { name: "თებერვალი", short: "FEB", hours: 160, rates: [8.35, 8.97] },
+  { name: "მარტი",     short: "MAR", hours: 168, rates: [7.95, 8.54] },
+  { name: "აპრილი",    short: "APR", hours: 152, rates: [8.79, 9.44] },
+  { name: "მაისი",     short: "MAY", hours: 152, rates: [8.79, 9.44] },
+  { name: "ივნისი",    short: "JUN", hours: 176, rates: [7.59, 8.15] },
+  { name: "ივლისი",    short: "JUL", hours: 184, rates: [7.26, 7.80] },
+  { name: "აგვისტო",   short: "AUG", hours: 160, rates: [8.35, 8.97] },
+  { name: "სექტემბერი", short: "SEP", hours: 176, rates: [7.59, 8.15] },
+  { name: "ოქტომბერი", short: "OCT", hours: 168, rates: [7.95, 8.54] },
+  { name: "ნოემბერი",  short: "NOV", hours: 160, rates: [8.35, 8.97] },
+  { name: "დეკემბერი", short: "DEC", hours: 184, rates: [7.26, 7.80] },
 ];
 const PAYMENT_DATES = [
   "12 თებერვალი",
@@ -61,10 +27,14 @@ const PAYMENT_DATES = [
   "11 დეკემბერი",
   "12 იანვარი",
 ];
-const SA_NET = [1297.52, 1401, 1427],
-  SA_GROSS = [1655, 1787, 1820];
-const SL_NET = [1687.2, 1805, 1805],
-  SL_GROSS = [2152, 2302, 2302];
+
+const SA_NET = [1335.93, 1434.72],
+  SA_GROSS = [1704, 1830];
+
+const SL_NET = 1842.4,
+  SL_GROSS = 2350;
+const SSL_NET = 2026.64,
+  SSL_GROSS = 2585;
 
 const COMPANY_COVERS = 62;
 const INS_PREMIUMS = {
@@ -90,14 +60,14 @@ let state = {
 };
 let maxVisited = 0;
 
-// ── THEME ──
+
 function applyTheme() {
   const html = document.documentElement;
   const isDark = html.getAttribute("data-theme") === "dark";
   html.setAttribute("data-theme", isDark ? "light" : "dark");
   document.getElementById("themeIcon").textContent = isDark ? "☾" : "☀";
   document.getElementById("themeLabel").textContent = isDark ? "DARK" : "LIGHT";
-  // Update select SVG arrow color
+  
   const arrow = isDark
     ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239e7a3f' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")"
     : "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c8a96e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")";
@@ -110,7 +80,7 @@ function toggleTheme() {
   const html = document.documentElement;
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Fallback: smooth color crossfade when View Transitions aren't available
+  
   if (!document.startViewTransition || reduce) {
     html.classList.add("theme-anim");
     applyTheme();
@@ -118,7 +88,7 @@ function toggleTheme() {
     return;
   }
 
-  // Circular reveal expanding from the theme toggle button
+  
   const btn = document.getElementById("themeBtn");
   const rect = btn ? btn.getBoundingClientRect() : null;
   const x = rect ? rect.left + rect.width / 2 : window.innerWidth - 56;
@@ -148,15 +118,37 @@ function toggleTheme() {
   vt.finished.finally(() => html.classList.remove("theme-switching"));
 }
 
-// ── HELPERS ──
+
 function getTier(m) {
-  return m <= 6 ? 0 : m <= 12 ? 1 : 2;
+  return m <= 6 ? 0 : 1;
 }
 function getTierLabel(m) {
-  return m <= 6 ? "0–6 months" : m <= 12 ? "7–12 months" : "13+ months";
+  return m <= 6 ? "0–6 months" : "6+ months";
 }
 
 function buildMonthGrid() {
+  
+  
+  const noTier = state.role === "SL" || state.role === "SSL";
+  const tf = document.getElementById("tierField");
+  if (tf) tf.style.display = noTier ? "none" : "";
+  const hint = document.getElementById("detailHint");
+  if (hint) hint.textContent = noTier
+    ? "Pick the month you're calculating for"
+    : "Select your work month and seniority";
+  if (noTier) {
+    state.months = 1;
+    [0, 1].forEach((i) =>
+      document.getElementById(`tierBtn${i}`).classList.remove("active"),
+    );
+  } else {
+    
+    const t = state.months == null ? -1 : getTier(state.months);
+    [0, 1].forEach((i) =>
+      document.getElementById(`tierBtn${i}`).classList.toggle("active", i === t),
+    );
+  }
+
   const g = document.getElementById("monthGrid");
   g.innerHTML = "";
   MONTHS.forEach((m, i) => {
@@ -239,7 +231,7 @@ function syncFamilyMeta() {
     `−${fullCost.toFixed(2)} GEL / month`;
 }
 
-// Result-page insurance handlers (recalculate on change)
+
 function resSelectInsPlan(type) {
   state.insType = type;
   state.insFamilyAddon = null;
@@ -437,16 +429,16 @@ function syncUnpaidLeavesAndCalculate() {
 }
 
 function selectTier(tier) {
-  const canonical = [1, 7, 13];
+  const canonical = [1, 7]; 
   state.months = canonical[tier];
-  [0, 1, 2].forEach((i) =>
+  [0, 1].forEach((i) =>
     document.getElementById(`tierBtn${i}`).classList.toggle("active", i === tier),
   );
 }
 
-// ── NAVIGATION ──
+
 function dotClick(n) {
-  // Only allow clicking steps already visited
+  
   if (n <= maxVisited) setStep(n);
 }
 
@@ -503,23 +495,27 @@ function setStep(n) {
   });
 }
 
-// ── CALCULATION ──
+
 function getHourlyRate() {
   const tier = getTier(state.months),
     m = MONTHS[state.monthIdx];
   if (state.role === "SA" || state.role === "PT SA") return m.rates[tier];
-  return (tier === 0 ? SL_NET[0] : SL_NET[1]) / m.hours;
+  if (state.role === "SSL") return SSL_NET / m.hours;
+  return SL_NET / m.hours; 
 }
 function getBaseSalary() {
   const tier = getTier(state.months);
   if (state.role === "SA") return SA_NET[tier];
   if (state.role === "PT SA") return SA_NET[tier] * 0.5;
-  return tier === 0 ? SL_NET[0] : SL_NET[1];
+  if (state.role === "SSL") return SSL_NET;
+  return SL_NET; 
 }
 function getGrossSalary() {
   const tier = getTier(state.months);
   if (state.role === "SA") return SA_GROSS[tier];
-  if (state.role === "SL") return tier === 0 ? SL_GROSS[0] : SL_GROSS[1];
+  if (state.role === "PT SA") return SA_GROSS[tier] * 0.5;
+  if (state.role === "SSL") return SSL_GROSS;
+  if (state.role === "SL") return SL_GROSS;
   return null;
 }
 
@@ -548,7 +544,7 @@ function calculate() {
   const holidaynightAmt = state.adds.holidaynight * hourly * 1.5;
   const otAmt = state.adds.ot * hourly * 2.0;
 
-  // Calculate daily deduction for unpaid leaves (month hours / 22 working days)
+  
   const dailyRate = hourly * (m.hours / 22);
   const unpaidLeavesAmt = state.unpaidLeavesCount * dailyRate;
 
@@ -758,8 +754,8 @@ function renderResult(
       </div>
     `;
 
-  // count the headline figures from the previously shown total → new total,
-  // so a first result counts up from zero and edits glide smoothly
+  
+  
   const from = lastTotalShown;
   countUp(document.getElementById("netAmt"), from, total, "", 2);
   countUp(document.getElementById("finalAmt"), from, total, "₾", 2);
@@ -768,7 +764,7 @@ function renderResult(
 
 let lastTotalShown = 0;
 
-// animate a number from `from` → `to` with an ease-out curve
+
 function countUp(el, from, to, prefix, decimals) {
   if (!el) return;
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -780,7 +776,7 @@ function countUp(el, from, to, prefix, decimals) {
   const start = performance.now();
   function frame(now) {
     const t = Math.min(1, (now - start) / dur);
-    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    const eased = 1 - Math.pow(1 - t, 3); 
     el.textContent = prefix + (from + (to - from) * eased).toFixed(decimals);
     if (t < 1) requestAnimationFrame(frame);
     else el.textContent = prefix + to.toFixed(decimals);
@@ -801,7 +797,7 @@ function resetAll() {
     adds: {},
   };
   maxVisited = 0;
-  lastTotalShown = 0; // next result counts up from zero again
+  lastTotalShown = 0; 
   document
     .querySelectorAll(".option-card")
     .forEach((c) => c.classList.remove("selected"));
@@ -826,9 +822,7 @@ function resetAll() {
   setStep(0);
 }
 
-// ── INTRO SPLASH ──
-// Remove the entrance overlay once its lift animation completes so it never
-// blocks interaction. Falls back to a timeout, and skips for reduced motion.
+
 window.addEventListener("DOMContentLoaded", () => {
   const intro = document.getElementById("intro");
   if (!intro) return;
@@ -840,5 +834,28 @@ window.addEventListener("DOMContentLoaded", () => {
   intro.addEventListener("animationend", (e) => {
     if (e.animationName === "introLift") intro.classList.add("done");
   });
-  setTimeout(() => intro.classList.add("done"), 2600); // safety fallback
+  setTimeout(() => intro.classList.add("done"), 2600); 
 });
+
+(function(){
+  var EDITABLE_TAGS = ['INPUT','TEXTAREA','SELECT'];
+  function isEditable(t){
+    if(!t) return false;
+    if(t.isContentEditable) return true;
+    if(EDITABLE_TAGS.indexOf((t.tagName||'').toUpperCase())>=0) return true;
+    if(t.closest && (t.closest('.CodeMirror') || t.closest('.cmp-ai-log'))) return true;
+    return false;
+  }
+  document.addEventListener('contextmenu', function(e){
+    if(isEditable(e.target)) return;
+    e.preventDefault();
+  });
+  document.addEventListener('keydown', function(e){
+    var k = (e.key||'').toLowerCase();
+    if(e.key === 'F12'){ e.preventDefault(); return; }
+    var mod = e.ctrlKey || e.metaKey;
+    if(mod && e.shiftKey && (k==='i'||k==='j'||k==='c')){ e.preventDefault(); return; }
+    if(mod && e.altKey  && (k==='i'||k==='j'||k==='c')){ e.preventDefault(); return; }
+    if(mod && k==='u'){ e.preventDefault(); return; }
+  });
+})();

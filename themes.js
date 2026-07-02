@@ -1,15 +1,4 @@
-/**
- * THEME STUDIO — let visitors create, preview, save & reuse custom themes.
- *
- * A custom theme = a base (light/dark, which supplies the neutral/glass
- * tokens) + user-chosen Accent, Background and Text colours. Those are
- * applied as inline CSS custom properties on <html>, which override the
- * stylesheet's [data-theme] values. Everything (calculator, games, video
- * player) reads the same variables, so the whole site re-themes at once.
- *
- * Saved themes + the active selection persist in localStorage. The built-in
- * light/dark toggle still works — using it clears any custom overrides.
- */
+
 (function () {
   "use strict";
 
@@ -42,7 +31,7 @@
     { name: "Crimson Chalk", base: "light", accent: "#dc143c", bg: "#f2efe7", text: "#1a1414" },
   ];
 
-  /* ── colour helpers ─────────────────────────────────── */
+  
   function hx(h) {
     h = (h || "").trim().replace("#", "");
     if (h.length === 3) h = h.split("").map((c) => c + c).join("");
@@ -71,10 +60,10 @@
     const { r, g, b } = hx(h);
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   }
-  // normalise any css colour (hex or rgb()) to #rrggbb for <input type=color>
+  
   function toHex(v) {
     v = (v || "").trim();
-    if (v[0] === "#") return mix(v, v, 0); // round-trips 3-digit → 6-digit
+    if (v[0] === "#") return mix(v, v, 0); 
     const m = v.match(/rgba?\(([^)]+)\)/);
     if (m) {
       const [r, g, b] = m[1].split(",").map((n) => parseInt(n, 10));
@@ -86,10 +75,10 @@
     return "#888888";
   }
 
-  /* ── apply / clear ──────────────────────────────────── */
+  
   function setBaseAttr(base) {
-    // the merged button is a static "🎨 THEME" launcher now, so we only set
-    // the data-theme attribute and leave the button's icon/label alone.
+    
+    
     html.setAttribute("data-theme", base);
   }
   function applyVars(t) {
@@ -119,7 +108,7 @@
     CUSTOM_VARS.forEach((v) => html.style.removeProperty(v));
   }
 
-  /* ── persistence ────────────────────────────────────── */
+  
   const load = (k, d) => {
     try {
       return JSON.parse(localStorage.getItem(k)) ?? d;
@@ -134,9 +123,9 @@
   };
 
   let saved = load(LS_SAVED, []);
-  let activeName = null; // name of the saved/preset theme currently applied
+  let activeName = null; 
 
-  /* ── STYLES ─────────────────────────────────────────── */
+  
   const style = document.createElement("style");
   style.textContent = `
     /* the merged control group: quick light/dark toggle + Theme button */
@@ -269,12 +258,12 @@
   `;
   document.head.appendChild(style);
 
-  /* ── DOM ────────────────────────────────────────────── */
-  // the launcher is the existing top-right button (now merged: 🎨 THEME)
+  
+  
   const themeBtn = document.getElementById("themeBtn");
   const themeControls = document.getElementById("themeControls");
 
-  // quick light/dark toggle, sitting just left of the Theme button
+  
   const quick = document.createElement("button");
   quick.id = "thm-quick";
   quick.setAttribute("aria-label", "Toggle light / dark");
@@ -286,7 +275,7 @@
     quick.title = dark ? "Switch to light" : "Switch to dark";
   }
 
-  // recolour the <select> dropdown arrows to match the current accent
+  
   function updateSelectArrows() {
     const accent =
       getComputedStyle(html).getPropertyValue("--accent").trim() || "#c8a96e";
@@ -297,7 +286,7 @@
     document.querySelectorAll("select").forEach((s) => (s.style.backgroundImage = svg));
   }
 
-  // apply a clean built-in light/dark theme (drops custom overrides)
+  
   function applyBase(next) {
     clearVars();
     setBaseAttr(next);
@@ -307,7 +296,7 @@
     updateSelectArrows();
   }
 
-  // read the background a given base theme would render (so the wave matches)
+  
   function themeBackground(base) {
     const probe = document.createElement("div");
     probe.setAttribute("data-theme", base);
@@ -321,12 +310,12 @@
     return bg || (base === "dark" ? "#0a0a0a" : "#eae7f0");
   }
 
-  // Circular "wave" reveal expanding from `originEl`.
-  //
-  // Primary path uses the View Transitions API so the circle unveils the
-  // REAL new-themed page (cards, text, everything) — not a flat disc.
-  // Always animates (no reduce-motion gate — it's an explicit request).
-  // Browsers without View Transitions fall back to an overlay colour wave.
+  
+  
+  
+  
+  
+  
   let revealing = false;
   function switchWithReveal(originEl, next) {
     if (revealing) {
@@ -345,7 +334,7 @@
     const start = `circle(0px at ${x}px ${y}px)`;
     const end = `circle(${R}px at ${x}px ${y}px)`;
 
-    /* ---- real content reveal via View Transitions ---- */
+    
     if (document.startViewTransition) {
       revealing = true;
       html.classList.add("theme-switching");
@@ -372,7 +361,7 @@
       return;
     }
 
-    /* ---- fallback: overlay colour wave ---- */
+    
     revealing = true;
     const ov = document.createElement("div");
     ov.style.position = "fixed";
@@ -484,7 +473,7 @@
 
   let curBase = html.getAttribute("data-theme") === "dark" ? "dark" : "light";
 
-  /* ── open / close ───────────────────────────────────── */
+  
   function open() {
     syncPanel();
     backdrop.classList.add("open");
@@ -504,7 +493,7 @@
     if (e.key === "Escape" && panel.classList.contains("open")) close();
   });
 
-  /* ── current picker → theme object ──────────────────── */
+  
   function current() {
     return {
       base: curBase,
@@ -519,7 +508,7 @@
     $("thm-hx-text").textContent = textIn.value;
   }
 
-  // apply whatever the pickers currently say (a live, unsaved custom theme)
+  
   function applyCurrent() {
     const t = current();
     applyVars(t);
@@ -534,14 +523,14 @@
   );
   baseSeg.querySelectorAll("[data-base]").forEach((b) =>
     b.addEventListener("click", () => {
-      // switching base gives the clean built-in light/dark theme
-      // (drops any custom colour overrides); tweak a colour to go custom.
-      // Same circular-wave reveal, expanding from the clicked button.
+      
+      
+      
       switchWithReveal(b, b.dataset.base);
     }),
   );
 
-  /* ── apply a full preset / saved theme ──────────────── */
+  
   function applyTheme(t, name) {
     curBase = t.base;
     accentIn.value = toHex(t.accent);
@@ -553,7 +542,7 @@
     syncPanel();
   }
 
-  /* ── render preset + saved chips ────────────────────── */
+  
   function chip(t, opts) {
     const el = document.createElement("button");
     el.className = "thm-chip";
@@ -596,7 +585,7 @@
     });
   }
 
-  /* ── save current as a named theme ──────────────────── */
+  
   $("thm-save").addEventListener("click", () => {
     const nameInput = $("thm-name");
     let name = (nameInput.value || "").trim();
@@ -612,7 +601,7 @@
     renderSaved();
   });
 
-  /* ── reset to default light theme ───────────────────── */
+  
   $("thm-reset").addEventListener("click", () => {
     clearVars();
     curBase = "light";
@@ -622,7 +611,7 @@
     syncPanel();
   });
 
-  /* ── keep the panel widgets in sync with the live theme ── */
+  
   function syncPanel() {
     curBase = html.getAttribute("data-theme") === "dark" ? "dark" : "light";
     baseSeg
@@ -637,7 +626,7 @@
     updateQuickIcon();
   }
 
-  /* ── restore the last active theme on load ──────────── */
+  
   const active = load(LS_ACTIVE, null);
   if (active && active.mode === "custom" && active.accent) {
     applyVars(active);

@@ -1,12 +1,8 @@
-/**
- * MINIGAMES LAUNCHER — visible sidebar panel + modal system
- */
+
 (function () {
   "use strict";
 
-  /* ─────────────────────────────────────────
-     STYLES
-  ───────────────────────────────────────── */
+  
   const style = document.createElement("style");
   style.textContent = `
     /* ── SIDEBAR PANEL (burger menu) ── */
@@ -415,9 +411,7 @@
   `;
   document.head.appendChild(style);
 
-  /* ─────────────────────────────────────────
-     MOBILE FAB + PICKER
-  ───────────────────────────────────────── */
+  
   const fab = document.createElement("button");
   fab.id = "mg-fab";
   fab.setAttribute("aria-label", "Open games");
@@ -475,9 +469,7 @@
     });
   });
 
-  /* ─────────────────────────────────────────
-     SIDEBAR PANEL HTML
-  ───────────────────────────────────────── */
+  
   const panel = document.createElement("div");
   panel.id = "mg-panel";
   panel.innerHTML = `
@@ -573,13 +565,13 @@
   `;
   document.body.appendChild(panel);
 
-  // burger toggle: list is hidden until clicked
+  
   const burger = panel.querySelector("#mg-burger");
   burger.addEventListener("click", (e) => {
     e.stopPropagation();
     panel.classList.toggle("open");
   });
-  // collapse the menu after picking a game, and when clicking away
+  
   panel
     .querySelectorAll(".mg-panel-btn")
     .forEach((b) =>
@@ -589,9 +581,7 @@
     if (!panel.contains(e.target)) panel.classList.remove("open");
   });
 
-  /* ─────────────────────────────────────────
-     MODAL HTML
-  ───────────────────────────────────────── */
+  
   const overlay = document.createElement("div");
   overlay.id = "mg-overlay";
   overlay.innerHTML = `
@@ -610,9 +600,7 @@
   `;
   document.body.appendChild(overlay);
 
-  /* ─────────────────────────────────────────
-     TOAST
-  ───────────────────────────────────────── */
+  
   const toast = document.createElement("div");
   toast.id = "mg-toast";
   document.body.appendChild(toast);
@@ -624,15 +612,13 @@
     toast._t = setTimeout(() => toast.classList.remove("show"), 2600);
   }
 
-  /* ─────────────────────────────────────────
-     MODAL API
-  ───────────────────────────────────────── */
+  
   const modal = document.getElementById("mg-modal");
   const frame = document.getElementById("mg-frame");
   const label = document.getElementById("mg-game-label");
   let isFullscreen = false;
 
-  /* keep each game's light/dark theme in sync with the site (same-origin iframe) */
+  
   function syncFrameTheme() {
     try {
       const theme = document.documentElement.getAttribute("data-theme") || "dark";
@@ -641,7 +627,7 @@
     } catch (e) {}
   }
   frame.addEventListener("load", syncFrameTheme);
-  // re-sync whenever the site theme changes while a game is open
+  
   new MutationObserver(syncFrameTheme).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["data-theme"],
@@ -662,7 +648,7 @@
     blackjack: { icon: "🃏", name: "Blackjack", file: "blackjack.html" },
     mahjong: { icon: "🀄", name: "Mahjong", file: "mahjong.html" },
     candycrush: { icon: "🍬", name: "Candy Crush", file: "candycrush.html" },
-    // ── Retro / emulated (run via the Internet Archive) ──
+    
     doom: { icon: "👹", name: "DOOM", file: "doom.html", retro: true },
     pacman: {
       icon: "🟡",
@@ -704,8 +690,8 @@
     overlay.classList.add("open");
     document.body.classList.add("mg-open");
     document.body.style.overflow = "hidden";
-    // auto-fullscreen on small screens, or for retro/emulated games
-    // (they need the room to scale up)
+    
+    
     if ((window.innerWidth <= 860 || g.retro) && !isFullscreen)
       window.mgToggleFull();
     showToast(g.icon + " " + g.name + " — tap ✕ to close");
@@ -733,13 +719,13 @@
       : "⛶ Fullscreen";
   };
 
-  /* ── ESC to close ── */
+  
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && overlay.classList.contains("open"))
       window.mgClose();
   });
 
-  /* ── click backdrop to close ── */
+  
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) window.mgClose();
   });

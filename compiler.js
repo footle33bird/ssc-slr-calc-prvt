@@ -1,12 +1,12 @@
-/* Code Compiler — editor + execution logic (external so embedded <script> strings are safe) */
+
       (function () {
         "use strict";
 
         var PISTON = "https://emkc.org/api/v2/piston";
         var LS_SNIPPETS = "compiler-snippets";
-        var LS_PERLANG = "compiler-perlang"; // remembers code per language
+        var LS_PERLANG = "compiler-perlang"; 
 
-        // language config: CodeMirror mode + Piston language name + fallback version
+        
         var LANGS = {
           python:     { cm: "python",            piston: "python",     ver: "3.10.0", file: "main.py" },
           javascript: { cm: "javascript",        piston: "javascript", ver: "18.15.0", file: "main.js" },
@@ -30,9 +30,9 @@
         };
 
         var $ = function (id) { return document.getElementById(id); };
-        var runtimeVersions = {}; // piston language -> best version (filled from API)
+        var runtimeVersions = {}; 
 
-        // ── editor ──────────────────────────────────────────
+        
         var LS_KEYMAP = "compiler-keymap";
         var keymapPref = "default";
         try { keymapPref = localStorage.getItem(LS_KEYMAP) || "default"; } catch (e) {}
@@ -66,25 +66,25 @@
             "Shift-Alt-F": function () { formatActive(); },
             "Ctrl-Q": function (cm) { cm.foldCode(cm.getCursor()); },
             "Cmd-Q": function (cm) { cm.foldCode(cm.getCursor()); },
-            // accept the grey ghost suggestion with Tab
+            
             "Tab": function (cm) {
               if (cm.state.completionActive) return CodeMirror.Pass;
               if (acceptGhost()) return;
               return CodeMirror.Pass;
             },
             "Esc": function () { if (ghost) { clearGhost(); return; } return CodeMirror.Pass; },
-            // AI completion (bring-your-own key)
+            
             "Alt-\\": function () { aiComplete(); },
             "Ctrl-\\": function () { aiComplete(); },
           },
         });
 
-        // ── editor / output / console theme ──
-        // codePref: "auto" (follow site light/dark) | "light" | "dark" | named CM theme.
-        // Chosen inside the 🎨 styles panel (injected below, compiler-only).
+        
+        
+        
         var LS_CODETHEME = "compiler-code-theme";
-        var LS_CODELIVE = "compiler-code-live";     // current custom colours
-        var LS_CODECUSTOM = "compiler-code-customs"; // saved custom editor themes
+        var LS_CODELIVE = "compiler-code-live";     
+        var LS_CODECUSTOM = "compiler-code-customs"; 
         var codePref = "auto";
         try { codePref = localStorage.getItem(LS_CODETHEME) || "auto"; } catch (e) {}
         var liveCustom = { bg: "#1e1e1e", fg: "#d4d4d4", accent: "#c8a96e" };
@@ -92,7 +92,7 @@
         var savedCustoms = [];
         try { savedCustoms = JSON.parse(localStorage.getItem(LS_CODECUSTOM)) || []; } catch (e) {}
 
-        // tiny colour helpers for deriving a full palette from 3 picked colours
+        
         function hx(h) { h = h.replace("#", ""); if (h.length === 3) h = h.replace(/(.)/g, "$1$1"); return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) }; }
         function lum(h) { var c = hx(h); return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255; }
         function mix(a, b, t) { var x = hx(a), y = hx(b); var m = function (p, q) { return Math.round(p + (q - p) * t); }; return "#" + [m(x.r, y.r), m(x.g, y.g), m(x.b, y.b)].map(function (v) { return ("0" + v.toString(16)).slice(-2); }).join(""); }
@@ -113,8 +113,8 @@
             },
           };
         }
-        // sw = chip swatch; pal = full code-area palette for named themes so the
-        // editor/output/console/tabs all adopt the theme (not just token colours)
+        
+        
         var CODE_THEMES = [
           { key: "auto", label: "Follow site", base: null, sw: "linear-gradient(135deg,#f0ede8 50%,#1e1e1e 50%)" },
           { key: "light", label: "Light", cm: "default", base: "light", sw: "linear-gradient(135deg,#ffffff 50%,#1f6feb 50%)" },
@@ -130,7 +130,7 @@
           { key: "eclipse", label: "Eclipse", cm: "eclipse", base: "light", sw: "linear-gradient(135deg,#ffffff 50%,#7000e0 50%)",
             pal: { bg: "#ffffff", fg: "#1f2328", gutter: "#eef0f3", ln: "#9aa0a6", panel: "#f3f4f6", line: "#dadde1", sel: "#d7d4f0", al: "rgba(0,0,0,0.04)" } },
         ];
-        // the code-area CSS variables a palette drives
+        
         var C_VARS = ["--c-edit-bg", "--c-edit-fg", "--c-gutter", "--c-ln", "--c-ln-active",
           "--c-activeline", "--c-cursor", "--c-sel", "--c-out-bg", "--c-out-fg", "--c-con-bg",
           "--c-con-line", "--c-panel-bg", "--c-panel-line", "--c-tab-fg", "--c-tab-hover",
@@ -151,7 +151,7 @@
         function siteTheme() { return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"; }
         function savedByName(n) { return savedCustoms.filter(function (s) { return s.name === n; })[0]; }
         function resolveCode() {
-          if (codePref === "auto") return themeByKey(siteTheme()); // light/dark entry
+          if (codePref === "auto") return themeByKey(siteTheme()); 
           if (codePref === "custom") return customEntry(liveCustom);
           if (codePref.indexOf("custom:") === 0) {
             var s = savedByName(codePref.slice(7));
@@ -162,12 +162,12 @@
         var codeAnimT;
         function applyCodeTheme(animate) {
           var r = resolveCode();
-          clearPal();                                      // drop any previous palette
-          if (r.pal) applyPal(r.pal, r.base === "light");  // named theme → repaint surfaces
-          document.body.setAttribute("data-code", r.base); // light/dark fallback surfaces
-          editor.setOption("theme", r.cm);                 // syntax theme
+          clearPal();                                      
+          if (r.pal) applyPal(r.pal, r.base === "light");  
+          document.body.setAttribute("data-code", r.base); 
+          editor.setOption("theme", r.cm);                 
           editor.refresh();
-          // highlight the active chip in both chip rows
+          
           document.querySelectorAll("#cmp-theme-chips .thm-chip, #cmp-custom-chips .thm-chip").forEach(function (c) {
             c.classList.toggle("on", c.getAttribute("data-key") === codePref);
           });
@@ -185,7 +185,7 @@
           } catch (e) {}
           applyCodeTheme(true);
         }
-        // re-apply when the site light/dark changes (only matters in "auto")
+        
         new MutationObserver(function () { if (codePref === "auto") applyCodeTheme(true); })
           .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
@@ -234,7 +234,7 @@
           });
         }
 
-        // inject the "Editor theme" section (presets + custom builder) into the 🎨 panel
+        
         function injectEditorThemeSection() {
           var body = document.querySelector("#thm-panel .thm-body");
           if (!body || document.getElementById("cmp-theme-chips")) return;
@@ -250,7 +250,7 @@
             '<div class="thm-chips" id="cmp-custom-chips" style="margin-top:8px"></div>' +
             '<div class="thm-sec-label" style="margin-top:14px">Editor keybindings</div>' +
             '<div class="thm-chips" id="cmp-keymap-chips"></div>';
-          // keybinding chips
+          
           var kmWrap = sec.querySelector("#cmp-keymap-chips");
           [["default", "Default"], ["sublime", "Sublime"], ["vim", "Vim"]].forEach(function (km) {
             var c = document.createElement("button");
@@ -269,7 +269,7 @@
             c.addEventListener("click", function () { setCodePref(t.key); });
             chips.appendChild(c);
           });
-          // most relevant control on the compiler → top of the panel
+          
           body.insertBefore(sec, body.firstChild);
 
           var bgIn = sec.querySelector("#cmp-c-bg"), fgIn = sec.querySelector("#cmp-c-fg"), acIn = sec.querySelector("#cmp-c-accent");
@@ -282,7 +282,7 @@
           function onPick() {
             liveCustom = { bg: bgIn.value, fg: fgIn.value, accent: acIn.value };
             syncPickers();
-            setCodePref("custom"); // live preview as you tweak
+            setCodePref("custom"); 
           }
           bgIn.addEventListener("input", onPick);
           fgIn.addEventListener("input", onPick);
@@ -303,7 +303,7 @@
           syncPickers();
           renderCustomChips();
           markKeymapChips();
-          applyCodeTheme(false); // sync active chip
+          applyCodeTheme(false); 
         }
 
         var currentLang = "python";
@@ -312,7 +312,7 @@
           return { python: "Python", javascript: "JavaScript", java: "Java",
                    cpp: "C++", c: "C", html: "HTML", css: "CSS", web: "Web" }[lang] || lang;
         }
-        // languages that render a live web preview (and can host linked css/js)
+        
         function isWebHost(lang) { return lang === "html" || lang === "web"; }
         function updateRuntimeLabel() {
           var cfg = LANGS[currentLang];
@@ -324,7 +324,7 @@
           $("cmp-runtime").textContent = cfg.piston + " " + v;
         }
 
-        // ── editor tabs: multiple open files, each its own document ──
+        
         var LS_TABS = "compiler-tabs";
         var tabs = [];
         var activeId = null;
@@ -347,7 +347,7 @@
             el.appendChild(nm);
             var ed = document.createElement("button");
             ed.className = "cmp-tab-edit";
-            ed.innerHTML = "&#9998;"; // ✎ pencil
+            ed.innerHTML = "&#9998;"; 
             ed.title = "Rename file";
             ed.addEventListener("click", function (e) { e.stopPropagation(); startRename(t, nm); });
             el.appendChild(ed);
@@ -368,7 +368,7 @@
           bar.appendChild(add);
         }
 
-        // the file extension decides the language (no separate picker)
+        
         function langFromName(name) {
           var m = /\.([a-z0-9+]+)\s*$/i.exec(name || "");
           if (!m) return null;
@@ -380,7 +380,7 @@
           return map[m[1].toLowerCase()] || null;
         }
 
-        // double-click a tab name (or its ✎) to rename it; the extension picks the language
+        
         function startRename(t, nmEl) {
           var input = document.createElement("input");
           input.className = "cmp-tab-rename";
@@ -394,7 +394,7 @@
             if (v) {
               t.name = v;
               t.renamed = true;
-              var lg = langFromName(v); // switch language to match the extension
+              var lg = langFromName(v); 
               if (lg && lg !== t.lang) {
                 t.lang = lg;
                 if (t.id === activeId) applyActiveTab();
@@ -410,8 +410,8 @@
           input.addEventListener("blur", commit);
         }
 
-        // which HTML page (if any) should be previewed for the given tab:
-        // the tab itself if it's a web host, or the page a linked CSS/JS belongs to
+        
+        
         function previewTargetFor(t) {
           if (!t) return null;
           if (isWebHost(t.lang)) return t;
@@ -428,13 +428,13 @@
           var target = previewTargetFor(t);
           $("cmp-out-label").textContent = target ? "Live preview" : "Output";
           updateRuntimeLabel();
-          // stdin only matters for Piston-run languages; link button only for HTML hosts
+          
           $("cmp-stdin-toggle").style.display = (LANGS[t.lang].piston ? "" : "none");
           $("cmp-link").style.display = isWebHost(t.lang) ? "" : "none";
-          // pop-out is only useful when there's a live preview (or already popped)
+          
           $("cmp-pop").style.display =
             (target || document.body.classList.contains("pip-out")) ? "" : "none";
-          if (target) renderWebHost(target); // always keep the web preview visible
+          if (target) renderWebHost(target); 
           else { setOutputMode("text"); clearConsole(); }
           setTimeout(function () { editor.refresh(); editor.focus(); }, 0);
         }
@@ -451,7 +451,7 @@
         }
 
         function switchTab(id) {
-          if (id === activeId) return; // already active — don't rebuild (lets dbl-click rename work)
+          if (id === activeId) return; 
           var t = tabById(id);
           if (!t) return;
           activeId = id;
@@ -466,12 +466,12 @@
           tabs.forEach(function (t, k) { if (t.id === id) i = k; });
           if (i < 0) return;
           tabs.splice(i, 1);
-          if (tabs.length === 0) { newTab("python"); return; } // always keep one open
+          if (tabs.length === 0) { newTab("python"); return; } 
           if (activeId === id) switchTab(tabs[Math.max(0, i - 1)].id);
           else { renderTabs(); persistTabs(); }
         }
 
-        // snapshot of the whole workspace (every open tab + which is active)
+        
         function serializeTabs() {
           var ids = tabs.map(function (t) { return t.id; });
           return {
@@ -479,14 +479,14 @@
             tabs: tabs.map(function (t) {
               return {
                 lang: t.lang, name: t.name, code: t.doc.getValue(), renamed: !!t.renamed,
-                // store links by index so they survive id regeneration
+                
                 links: (t.links || []).map(function (id) { return ids.indexOf(id); })
                   .filter(function (i) { return i >= 0; }),
               };
             }),
           };
         }
-        // rebuild the workspace from a snapshot (replaces all open tabs)
+        
         function loadTabsFrom(data) {
           if (!data || !data.tabs || !data.tabs.length) return false;
           tabs = [];
@@ -516,13 +516,13 @@
           catch (e) { return false; }
         }
 
-        // autosave (debounced) + live web re-render as you type
+        
         var saveTimer, webTimer;
         editor.on("change", function () {
           clearTimeout(saveTimer);
           saveTimer = setTimeout(persistTabs, 400);
-          clearErrors(); // stale error marks no longer line up after edits
-          // live-update the preview while editing the page OR any linked CSS/JS
+          clearErrors(); 
+          
           var target = previewTargetFor(tabById(activeId));
           if (target) {
             clearTimeout(webTimer);
@@ -530,7 +530,7 @@
           }
         });
 
-        // ── error line highlighting (from the run's stderr) ──
+        
         var errLines = [];
         function clearErrors() {
           errLines.forEach(function (ln) {
@@ -567,10 +567,10 @@
             });
             editor.setGutterMarker(idx, "cmp-errors", marker);
           });
-          if (lines.length) editor.scrollIntoView({ line: lines[0] - 1, ch: 0 }, 120); // jump to first
+          if (lines.length) editor.scrollIntoView({ line: lines[0] - 1, ch: 0 }, 120); 
         }
 
-        // ── output helpers ──────────────────────────────────
+        
         var out = $("cmp-output");
         var preview = $("cmp-preview");
         var wrap = $("cmp-out-wrap");
@@ -616,7 +616,7 @@
           el.className = "cmp-status" + (kind ? " " + kind : "");
         }
 
-        // ── Piston execution ────────────────────────────────
+        
         async function fetchRuntimes() {
           try {
             var r = await fetch(PISTON + "/runtimes", { cache: "no-store" });
@@ -625,13 +625,13 @@
             list.forEach(function (rt) {
               var keys = [rt.language].concat(rt.aliases || []);
               keys.forEach(function (k) {
-                // keep the highest version we see for each language/alias
+                
                 if (!runtimeVersions[k] || cmpVer(rt.version, runtimeVersions[k]) > 0)
                   runtimeVersions[k] = rt.version;
               });
             });
             updateRuntimeLabel();
-          } catch (e) { /* offline → fall back to hardcoded versions */ }
+          } catch (e) {  }
         }
         function cmpVer(a, b) {
           var pa = a.split("."), pb = b.split(".");
@@ -669,7 +669,7 @@
         function renderPistonResult(res) {
           var html = "";
           var failed = false;
-          // compile stage (C/C++/Java) — show errors if compilation failed
+          
           if (res.compile && (res.compile.stderr || res.compile.code)) {
             if (res.compile.stderr) {
               html += '<span class="meta">— compile —</span>\n';
@@ -691,45 +691,45 @@
           } else {
             setStatus("✓ exit 0", "ok");
           }
-          // highlight error lines in the editor (from compile + run stderr)
+          
           var errText = (res.compile && res.compile.stderr ? res.compile.stderr + "\n" : "") + (run.stderr || "");
           markErrors(parseErrorLines(errText, currentLang));
         }
 
-        // ── Web (client-side) preview ───────────────────────
+        
         function baseName(p) { return String(p).replace(/^.*[\\/]/, "").replace(/[?#].*$/, "").toLowerCase(); }
-        // find an open tab whose filename matches a href/src reference
+        
         function tabByFile(ref) {
           var b = baseName(ref);
           return tabs.filter(function (t) { return baseName(t.name) === b; })[0];
         }
-        // true for real external URLs (CDNs etc.); everything else is a relative
-        // path that would otherwise resolve against — and load — the real site files
+        
+        
         function isExternalUrl(u) { return /^(https?:)?\/\//i.test(u) || /^(data|blob):/i.test(u); }
 
-        // compose the final HTML for a host tab. <link href> / <script src> that
-        // match an open tab are inlined; OTHER relative refs are dropped so the
-        // preview can never pull files from the actual site. External (CDN) URLs
-        // are kept. 🔗-linked tabs are injected too.
+        
+        
+        
+        
         function buildWebDoc(host) {
           var html = host.doc.getValue();
-          if (host.lang === "web") return html; // self-contained single file
+          if (host.lang === "web") return html; 
           var used = {};
-          // <link ... href="styles.css" ...>
+          
           html = html.replace(/<link\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*?>/gi, function (m, href) {
             var f = tabByFile(href);
             if (f && f.lang === "css") { used[f.id] = 1; return "<style>\n/* " + f.name + " */\n" + f.doc.getValue() + "\n</style>"; }
             if (!isExternalUrl(href)) return "<!-- dropped local link: " + href + " (not an open tab) -->";
-            return m; // keep external stylesheets (CDNs)
+            return m; 
           });
-          // <script ... src="app.js" ...></script>
+          
           html = html.replace(/<script\b[^>]*?src\s*=\s*["']([^"']+)["'][^>]*?>\s*<\/script>/gi, function (m, src) {
             var f = tabByFile(src);
             if (f && f.lang === "javascript") { used[f.id] = 1; return "<script>\n/* " + f.name + " */\n" + f.doc.getValue() + "\n<\/script>"; }
             if (!isExternalUrl(src)) return "<!-- dropped local script: " + src + " (not an open tab) -->";
-            return m; // keep external scripts (CDNs)
+            return m; 
           });
-          // explicit 🔗 links not already pulled in by a reference
+          
           var styles = "", scripts = "";
           (host.links || []).forEach(function (id) {
             if (used[id]) return;
@@ -747,13 +747,13 @@
           if (!host) return;
           setOutputMode("web");
           setStatus("rendered", "ok");
-          clearConsole(); // fresh console for each render
-          // console-capture shim injected before the document so we can surface
-          // console.* + uncaught errors in our own console panel
+          clearConsole(); 
+          
+          
           var shim =
             "<script>(function(){" +
-            // the preview is sandboxed (no same-origin) for isolation; stub the
-            // service-worker API so code that touches it degrades instead of throwing
+            
+            
             "try{Object.defineProperty(navigator,'serviceWorker',{configurable:true,get:function(){return {register:function(){return Promise.reject(new Error('Service workers are disabled in the preview sandbox.'));},addEventListener:function(){},ready:new Promise(function(){})};}});}catch(e){}" +
             "function send(t,a){parent.postMessage({__cmp:1,type:t," +
             "text:Array.from(a).map(function(x){try{return typeof x==='object'?JSON.stringify(x):String(x)}catch(e){return String(x)}}).join(' ')},'*')}" +
@@ -763,8 +763,8 @@
             "})();<\/script>";
           preview.srcdoc = shim + buildWebDoc(host);
         }
-        // find an HTML host tab that uses the given tab — either via the 🔗 list
-        // or by referencing its filename in a <link>/<script src> in its code
+        
+        
         function hostLinking(id) {
           var target = tabById(id);
           var base = target ? baseName(target.name) : null;
@@ -780,7 +780,7 @@
           })[0];
         }
 
-        // capture console output streamed from the sandboxed preview iframe
+        
         window.addEventListener("message", function (e) {
           var d = e.data;
           if (!d || d.__cmp !== 1) return;
@@ -789,21 +789,21 @@
         });
         $("cmp-console-clear").addEventListener("click", clearConsole);
 
-        // ── run dispatcher ──────────────────────────────────
+        
         var running = false, runCtl = null;
-        var RUN_TIMEOUT = 20000; // abort if the service hangs this long
+        var RUN_TIMEOUT = 20000; 
         function setRunButton(stopMode) {
           var b = $("cmp-run");
           b.textContent = stopMode ? "■ Stop" : "▶ Run";
           b.title = stopMode ? "Stop the running program" : "Run (Ctrl/Cmd + Enter)";
         }
         async function run() {
-          // clicking while running acts as Stop
+          
           if (running) { if (runCtl) runCtl.abort(); return; }
           var lang = currentLang;
           var active = tabById(activeId);
           if (isWebHost(lang)) { renderWebHost(active); return; }
-          // CSS isn't runnable alone — preview the HTML page it's linked to
+          
           if (lang === "css") {
             var host = hostLinking(activeId);
             if (host) { renderWebHost(host); }
@@ -850,7 +850,7 @@
           }
         }
 
-        // ── snippets (save / load / delete) ─────────────────
+        
         function loadSnippets() {
           try { return JSON.parse(localStorage.getItem(LS_SNIPPETS)) || []; }
           catch (e) { return []; }
@@ -859,7 +859,7 @@
           try { localStorage.setItem(LS_SNIPPETS, JSON.stringify(list)); } catch (e) {}
         }
         function snippetMeta(s) {
-          // new format = a whole workspace; old format = a single file
+          
           if (s.workspace && s.workspace.tabs) {
             var n = s.workspace.tabs.length;
             return n + (n === 1 ? " file" : " files");
@@ -887,7 +887,7 @@
           var name = (prompt("Name this saved workspace:") || "").trim();
           if (!name) return;
           var list = loadSnippets();
-          // save ALL open tabs (the whole workspace), not just the active file
+          
           var entry = { name: name, workspace: serializeTabs() };
           var i = list.findIndex(function (s) { return s.name === name; });
           if (i >= 0) list[i] = entry; else list.push(entry);
@@ -917,13 +917,13 @@
           var s = list[parseInt(v, 10)];
           if (s) {
             if (s.workspace) {
-              // restore the whole saved workspace (replaces the open tabs)
+              
               loadTabsFrom(s.workspace);
               persistTabs();
               var n = s.workspace.tabs.length;
               toast("Opened “" + s.name + "” (" + n + (n === 1 ? " file" : " files") + ")");
             } else {
-              // legacy single-file snippet → open in a new tab
+              
               newTab(s.lang, s.code, s.name);
               toast("Loaded “" + s.name + "” in a new tab");
             }
@@ -931,7 +931,7 @@
           e.target.value = "";
         });
 
-        // ── toast ───────────────────────────────────────────
+        
         var toastTimer;
         function toast(msg) {
           var t = $("cmp-toast");
@@ -941,7 +941,7 @@
           toastTimer = setTimeout(function () { t.classList.remove("show"); }, 1800);
         }
 
-        // ── code formatting (Prettier — JS / HTML / CSS) ──
+        
         var PRETTIER_PARSERS = {
           javascript: { parser: "babel", plugins: ["babel", "estree"] },
           css: { parser: "css", plugins: ["postcss"] },
@@ -967,7 +967,7 @@
           }
         }
 
-        // ── download / upload files ──
+        
         function downloadBlob(name, content, type) {
           var blob = new Blob([content], { type: type || "text/plain" });
           var url = URL.createObjectURL(blob);
@@ -987,7 +987,7 @@
           var seen = {};
           tabs.forEach(function (t) {
             var nm = t.name, i = 2;
-            while (seen[nm]) { nm = t.name.replace(/(\.[^.]+)?$/, "-" + (i++) + "$1"); } // de-dupe names
+            while (seen[nm]) { nm = t.name.replace(/(\.[^.]+)?$/, "-" + (i++) + "$1"); } 
             seen[nm] = 1;
             zip.file(nm, t.doc.getValue());
           });
@@ -1004,14 +1004,14 @@
             reader.onload = function () {
               var lang = langFromName(f.name) || "python";
               newTab(lang, String(reader.result), f.name);
-              tabById(activeId).renamed = true; // keep the uploaded filename
+              tabById(activeId).renamed = true; 
               if (--pending === 0) { renderTabs(); persistTabs(); toast("Opened " + files.length + " file(s)"); }
             };
             reader.readAsText(f);
           });
         }
 
-        // ── wire up controls ────────────────────────────────
+        
         $("cmp-run").addEventListener("click", run);
         $("cmp-save").addEventListener("click", saveSnippet);
         $("cmp-format").addEventListener("click", formatActive);
@@ -1019,8 +1019,8 @@
         $("cmp-zip").addEventListener("click", downloadZip);
         $("cmp-upload").addEventListener("click", function () { $("cmp-fileinput").click(); });
         $("cmp-fileinput").addEventListener("change", function () { openFiles(this.files); this.value = ""; });
-        // ── inline "ghost" suggestions (grey, Tab to accept) ──
-        // snippets: trigger → template ($0 marks where the caret lands)
+        
+        
         var SNIPPETS = {
           html: {
             "!": '<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Document</title>\n</head>\n<body>\n  $0\n</body>\n</html>',
@@ -1069,7 +1069,7 @@
         };
         function snippetsFor(lang) { return SNIPPETS[lang === "web" ? "html" : lang] || {}; }
 
-        var ghost = null; // { mark, insert, from }
+        var ghost = null; 
         function clearGhost() { if (ghost && ghost.mark) ghost.mark.clear(); ghost = null; }
         function showGhost(preview, insert, from) {
           clearGhost();
@@ -1106,13 +1106,13 @@
           var tmpl = snippetsFor(currentLang)[trig];
           if (!tmpl) { clearGhost(); return; }
           var from = { line: cur.line, ch: cur.ch - trig.length };
-          // if the snippet starts with the trigger, only preview the remainder
+          
           var preview = tmpl.indexOf(trig) === 0 ? tmpl.slice(trig.length) : tmpl;
           showGhost(preview.replace("$0", ""), tmpl, from);
         }
         editor.on("cursorActivity", updateGhost);
 
-        // ── AI completions (bring-your-own OpenAI / Gemini key) ──
+        
         var LS_AI = "compiler-ai";
         var aiCfg = null, aiPending = false;
         try { aiCfg = JSON.parse(localStorage.getItem(LS_AI)); } catch (e) {}
@@ -1143,8 +1143,8 @@
             aiPending = false;
             setStatus("", "");
             if (!text) { toast("AI returned nothing"); return; }
-            if (editor.getCursor().line !== cur.line || editor.getCursor().ch !== cur.ch) return; // moved
-            showGhost(text, text, cur); // Tab inserts at cursor
+            if (editor.getCursor().line !== cur.line || editor.getCursor().ch !== cur.ch) return; 
+            showGhost(text, text, cur); 
           } catch (err) {
             aiPending = false;
             setStatus("AI error", "err");
@@ -1152,7 +1152,7 @@
           }
         }
         function aiRequest(prompt2) { return aiChat([{ role: "user", content: prompt2 }], 256); }
-        // messages: [{role:'system'|'user'|'assistant', content}]
+        
         async function aiChat(messages, maxTok) {
           maxTok = maxTok || 700;
           if (aiCfg.provider === "openai") {
@@ -1165,7 +1165,7 @@
             var d = await r.json();
             return d.choices && d.choices[0] && d.choices[0].message.content;
           } else {
-            // Gemini: fold system into the first user turn, map roles
+            
             var sys = messages.filter(function (m) { return m.role === "system"; }).map(function (m) { return m.content; }).join("\n");
             var contents = messages.filter(function (m) { return m.role !== "system"; }).map(function (m) {
               return { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] };
@@ -1182,12 +1182,12 @@
           }
         }
 
-        // ── AI chat popup (ask it to write code) ──
+        
         var aiHistory = [];
         function escAi(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
         function firstCode(txt) { var m = txt.match(/```[a-z]*\n([\s\S]*?)```/i); return (m ? m[1] : txt).replace(/\s+$/, ""); }
         function renderAiBody(txt) {
-          // render fenced code blocks as <pre>, the rest as text
+          
           return escAi(txt).replace(/```[a-z]*\n?([\s\S]*?)```/gi, function (_, code) {
             return '<pre class="cmp-ai-code">' + code.replace(/\s+$/, "") + "</pre>";
           }).replace(/\n/g, "<br>");
@@ -1211,7 +1211,7 @@
         function openAiChat() {
           $("cmp-ai-chat").classList.add("open");
           $("cmp-ai-chat").classList.remove("min");
-          // greet + show key instructions the first time / when empty
+          
           if (!$("cmp-ai-log").children.length) {
             aiLogMsg("ai", aiCfg
               ? "Hi! Ask me to write or explain code and I'll reply with a code block you can insert. Need a different key? Tap 🔑."
@@ -1236,7 +1236,7 @@
             aiPending = false;
             aiHistory.push({ role: "assistant", content: reply || "" });
             thinking.innerHTML = renderAiBody(reply || "(no reply)");
-            // actions row: Insert code at cursor / Copy
+            
             var code = firstCode(reply || "");
             if (code) {
               var row = document.createElement("div");
@@ -1254,7 +1254,7 @@
             thinking.innerHTML = '<span class="cmp-ai-err">Request failed — check your API key (right-click 🤖).</span>';
           }
         }
-        // drag-and-drop files onto the editor to open them
+        
         var editArea = document.querySelector(".cmp-editor-wrap");
         ["dragenter", "dragover"].forEach(function (ev) {
           editArea.addEventListener(ev, function (e) { e.preventDefault(); editArea.classList.add("cmp-drop"); });
@@ -1270,7 +1270,7 @@
           editor.refresh();
         });
 
-        // ── word-wrap toggle (editor long lines) ──
+        
         var LS_WRAP = "compiler-wrap";
         var wrapOn = false;
         try { wrapOn = localStorage.getItem(LS_WRAP) === "1"; } catch (e) {}
@@ -1285,7 +1285,7 @@
         });
         applyWrap();
 
-        // ── copy output / console to the clipboard ──
+        
         $("cmp-copy").addEventListener("click", function () {
           var text = wrap.classList.contains("web")
             ? Array.prototype.map.call($("cmp-console-log").querySelectorAll(".cmp-cl-line"), function (l) { return l.textContent; }).join("\n")
@@ -1296,7 +1296,7 @@
             ? navigator.clipboard.writeText(text)
             : Promise.reject()
           ).then(function () { toast("Output copied"); }, function () {
-            // fallback for non-secure contexts
+            
             var ta = document.createElement("textarea");
             ta.value = text; document.body.appendChild(ta); ta.select();
             try { document.execCommand("copy"); toast("Output copied"); } catch (e) { toast("Couldn't copy"); }
@@ -1304,7 +1304,7 @@
           });
         });
 
-        // ── stdin / args presets ──
+        
         var LS_STDIN = "compiler-stdin-presets";
         function loadStdinPresets() { try { return JSON.parse(localStorage.getItem(LS_STDIN)) || []; } catch (e) { return []; } }
         function refreshStdinPresets() {
@@ -1354,7 +1354,7 @@
         });
         refreshStdinPresets();
 
-        // ── keyboard-shortcuts help overlay ──
+        
         var helpOv = $("cmp-help-overlay");
         function openHelp() { helpOv.classList.add("open"); }
         function closeHelp() { helpOv.classList.remove("open"); }
@@ -1368,7 +1368,7 @@
           this.title = min ? "Expand" : "Minimize";
         });
         $("cmp-ai-clear").addEventListener("click", function () { aiHistory = []; $("cmp-ai-log").innerHTML = ""; });
-        // drag + resize the chat window
+        
         (function () {
           var box = $("cmp-ai-chat");
           function pinTopLeft() {
@@ -1376,7 +1376,7 @@
             box.style.left = r.left + "px"; box.style.top = r.top + "px";
             box.style.right = "auto"; box.style.bottom = "auto";
           }
-          // move by dragging the header
+          
           box.querySelector(".cmp-ai-head").addEventListener("pointerdown", function (e) {
             if (e.target.closest("button")) return;
             e.preventDefault();
@@ -1392,7 +1392,7 @@
             document.addEventListener("pointermove", move);
             document.addEventListener("pointerup", up);
           });
-          // resize from the left edge / top edge / top-left corner
+          
           box.querySelectorAll(".cmp-ai-rz").forEach(function (h) {
             h.addEventListener("pointerdown", function (e) {
               e.preventDefault();
@@ -1416,7 +1416,7 @@
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiChat(); }
         });
         $("cmp-help").addEventListener("click", openHelp);
-        // Files dropdown
+        
         var filesMenu = $("cmp-files-menu");
         $("cmp-files").addEventListener("click", function (e) { e.stopPropagation(); filesMenu.classList.toggle("open"); });
         filesMenu.querySelectorAll("button.cmp-menu-item").forEach(function (b) {
@@ -1429,13 +1429,13 @@
         helpOv.addEventListener("click", function (e) { if (e.target === helpOv) closeHelp(); });
         document.addEventListener("keydown", function (e) {
           if (e.key === "Escape" && helpOv.classList.contains("open")) closeHelp();
-          // "?" opens help when you're not typing in an input/editor
+          
           if (e.key === "?" && !/^(INPUT|TEXTAREA)$/.test((e.target.tagName || "")) && !e.target.closest(".CodeMirror")) {
             e.preventDefault(); openHelp();
           }
         });
 
-        // ── link CSS / JS tabs into the active HTML page ──
+        
         var linkPop = document.createElement("div");
         linkPop.id = "cmp-link-pop";
         document.body.appendChild(linkPop);
@@ -1461,7 +1461,7 @@
               if (cb.checked) { if (host.links.indexOf(t.id) < 0) host.links.push(t.id); }
               else host.links = host.links.filter(function (x) { return x !== t.id; });
               persistTabs();
-              renderWebHost(host); // live update the preview
+              renderWebHost(host); 
             });
             row.appendChild(cb);
             var nm = document.createElement("span");
@@ -1491,7 +1491,7 @@
           if (linkPop.classList.contains("open") && !linkPop.contains(e.target) && e.target !== $("cmp-link"))
             linkPop.classList.remove("open");
         });
-        // ── hide / show the whole top bar to focus on the code/terminal ──
+        
         function setBarCollapsed(collapsed) {
           document.body.classList.toggle("bar-collapsed", collapsed);
           setTimeout(function () { editor.refresh(); }, 0);
@@ -1499,11 +1499,11 @@
         $("cmp-bar-toggle").addEventListener("click", function () { setBarCollapsed(true); });
         $("cmp-bar-show").addEventListener("click", function () { setBarCollapsed(false); });
 
-        // ── maximize a pane to fill the whole workspace (in-page) ──
+        
         var workspace = document.querySelector(".cmp-workspace");
         var maxBtns = document.querySelectorAll(".cmp-pane-btn[data-max]");
         function setMaximized(which) {
-          // which: "editor" | "output" | null
+          
           workspace.classList.toggle("max-editor", which === "editor");
           workspace.classList.toggle("max-output", which === "output");
           maxBtns.forEach(function (b) {
@@ -1514,7 +1514,7 @@
               ? "Restore split view"
               : "Maximize " + (b.getAttribute("data-max") === "editor" ? "editor" : "output / preview");
           });
-          setTimeout(function () { editor.refresh(); }, 0); // CodeMirror re-measures
+          setTimeout(function () { editor.refresh(); }, 0); 
         }
         maxBtns.forEach(function (b) {
           b.addEventListener("click", function () {
@@ -1526,13 +1526,13 @@
 
         function isFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 
-        // ── pop the live preview into a floating window ──
+        
         var pip = $("cmp-pip");
         function isPopped() { return document.body.classList.contains("pip-out"); }
         function popOut() {
           if (isPopped()) return;
-          $("cmp-pip-body").appendChild(preview); // move the iframe into the window
-          // reset to a known, on-screen position/size so it's always visible
+          $("cmp-pip-body").appendChild(preview); 
+          
           pip.style.left = "";
           pip.style.top = "";
           pip.style.right = "";
@@ -1546,7 +1546,7 @@
         }
         function popIn() {
           if (!isPopped()) return;
-          // put the iframe back in the panel, before the console
+          
           $("cmp-out-wrap").insertBefore(preview, $("cmp-gutter-console"));
           document.body.classList.remove("pip-out");
           pip.classList.remove("open");
@@ -1559,7 +1559,7 @@
           pip.classList.toggle("min");
           this.textContent = pip.classList.contains("min") ? "▢" : "▁";
         });
-        // drag the window by its header
+        
         $("cmp-pip-head").addEventListener("pointerdown", function (e) {
           if (e.target.closest(".cmp-pip-btn")) return;
           e.preventDefault();
@@ -1582,7 +1582,7 @@
           document.addEventListener("pointermove", move);
           document.addEventListener("pointerup", up);
         });
-        // resize from any edge or corner
+        
         var PIP_MINW = 240, PIP_MINH = 150;
         pip.querySelectorAll(".cmp-pip-rz").forEach(function (h) {
           h.addEventListener("pointerdown", function (e) {
@@ -1592,7 +1592,7 @@
             var r = pip.getBoundingClientRect();
             var sx = e.clientX, sy = e.clientY;
             var sL = r.left, sT = r.top, sW = r.width, sH = r.height;
-            pip.style.right = "auto"; // pin to left/top so all sides move correctly
+            pip.style.right = "auto"; 
             pip.style.left = sL + "px";
             pip.style.top = sT + "px";
             h.setPointerCapture(e.pointerId);
@@ -1621,8 +1621,8 @@
           });
         });
 
-        // ── drag-to-resize panes ──
-        // main divider: editor vs output (horizontal split, or vertical on mobile)
+        
+        
         $("cmp-gutter-main").addEventListener("pointerdown", function (e) {
           e.preventDefault();
           var g = e.currentTarget;
@@ -1645,14 +1645,14 @@
           document.addEventListener("pointerup", up);
         });
 
-        // console divider: preview vs console (web mode), adjusts console height
+        
         $("cmp-gutter-console").addEventListener("pointerdown", function (e) {
           e.preventDefault();
           var g = e.currentTarget;
           var rect = $("cmp-out-wrap").getBoundingClientRect();
           g.setPointerCapture(e.pointerId);
           function move(ev) {
-            var h = rect.bottom - ev.clientY; // height measured from the bottom up
+            var h = rect.bottom - ev.clientY; 
             h = Math.max(60, Math.min(rect.height - 90, h));
             $("cmp-out-wrap").style.setProperty("--console-h", h + "px");
           }
@@ -1664,7 +1664,7 @@
           document.addEventListener("pointerup", up);
         });
 
-        // ── per-panel zoom (editor / output+preview / console) ──
+        
         var zoom = { editor: 100, output: 100, console: 100 };
         var ZBASE = { editor: 13.5, output: 12.5, console: 12 };
         function applyZoom(which) {
@@ -1675,7 +1675,7 @@
             editor.refresh();
           } else if (which === "output") {
             out.style.fontSize = (ZBASE.output * z / 100).toFixed(2) + "px";
-            preview.style.zoom = z / 100; // scales the live preview
+            preview.style.zoom = z / 100; 
           } else if (which === "console") {
             clog.style.fontSize = (ZBASE.console * z / 100).toFixed(2) + "px";
           }
@@ -1689,7 +1689,7 @@
             bumpZoom(b.getAttribute("data-zoom"), parseInt(b.getAttribute("data-dir"), 10));
           });
         });
-        // Ctrl/Cmd + wheel zooms the panel under the cursor
+        
         function wheelZoom(el, which) {
           el.addEventListener("wheel", function (e) {
             if (!(e.ctrlKey || e.metaKey)) return;
@@ -1701,14 +1701,14 @@
         wheelZoom($("cmp-output"), "output");
         wheelZoom($("cmp-console-log"), "console");
 
-        // ── fold the video launcher into the top-bar icon group ──
-        // (#yt-launch is created by videoplayer.js, which ran just before this
-        // script; place it next to the theme icons, before the Home button)
+        
+        
+        
         var ytLaunch = document.getElementById("yt-launch");
         var utils = $("cmp-bar-utils");
         if (ytLaunch && utils) utils.insertBefore(ytLaunch, $("cmp-home"));
 
-        // Ctrl/Cmd + Enter runs · Esc restores a maximized pane
+        
         document.addEventListener("keydown", function (e) {
           if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
           if (e.key === "Escape" && !isFs() &&
@@ -1717,11 +1717,33 @@
           }
         });
 
-        // ── boot ────────────────────────────────────────────
+        
         applyCodeTheme();
         injectEditorThemeSection();
         refreshSnippetList();
-        if (!restoreTabs()) newTab("python"); // restore open files, or start fresh
+        if (!restoreTabs()) newTab("python"); 
         fetchRuntimes();
         setTimeout(function () { editor.refresh(); }, 60);
       })();
+(function(){
+  var EDITABLE_TAGS = ['INPUT','TEXTAREA','SELECT'];
+  function isEditable(t){
+    if(!t) return false;
+    if(t.isContentEditable) return true;
+    if(EDITABLE_TAGS.indexOf((t.tagName||'').toUpperCase())>=0) return true;
+    if(t.closest && (t.closest('.CodeMirror') || t.closest('.cmp-ai-log'))) return true;
+    return false;
+  }
+  document.addEventListener('contextmenu', function(e){
+    if(isEditable(e.target)) return;
+    e.preventDefault();
+  });
+  document.addEventListener('keydown', function(e){
+    var k = (e.key||'').toLowerCase();
+    if(e.key === 'F12'){ e.preventDefault(); return; }
+    var mod = e.ctrlKey || e.metaKey;
+    if(mod && e.shiftKey && (k==='i'||k==='j'||k==='c')){ e.preventDefault(); return; }
+    if(mod && e.altKey  && (k==='i'||k==='j'||k==='c')){ e.preventDefault(); return; }
+    if(mod && k==='u'){ e.preventDefault(); return; }
+  });
+})();

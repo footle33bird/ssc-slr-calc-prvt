@@ -1,19 +1,11 @@
-/**
- * FLOATING YOUTUBE PiP PLAYER
- * A draggable, resizable picture-in-picture window with search + playback.
- *
- * Search works three ways (most reliable first):
- *   1. If YT_API_KEY is set below, the official YouTube Data API is used.
- *   2. Otherwise keyless search via public Piped instances (can be flaky).
- *   3. Pasting any YouTube URL or 11-char video ID always plays directly.
- */
+
 (function () {
   "use strict";
 
-  // ── OPTIONAL: paste a YouTube Data API v3 key here for best search ──
+  
   const YT_API_KEY = "";
 
-  // public keyless search proxies, tried in order
+  
   const PIPED = [
     "https://api.piped.private.coffee",
     "https://pipedapi.kavin.rocks",
@@ -31,7 +23,7 @@
     "jazz cafe music",
   ];
 
-  /* ── STYLES ─────────────────────────────────────── */
+  
   const style = document.createElement("style");
   style.textContent = `
     #yt-launch {
@@ -282,7 +274,7 @@
   `;
   document.head.appendChild(style);
 
-  /* ── DOM ─────────────────────────────────────────── */
+  
   const launch = document.createElement("button");
   launch.id = "yt-launch";
   launch.setAttribute("aria-label", "Open video player");
@@ -315,7 +307,7 @@
   `;
   document.body.appendChild(pip);
 
-  // resize handles: 4 edges + 4 corners
+  
   ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach((dir) => {
     const h = document.createElement("div");
     h.className = "yt-rz yt-rz-" + dir + (dir.length === 2 ? " corner" : "");
@@ -330,7 +322,7 @@
   const iframe = pip.querySelector(".yt-stage iframe");
   const results = pip.querySelector(".yt-results");
 
-  /* ── persistence ─────────────────────────────────── */
+  
   const LS = "yt-pip-state";
   function saveState() {
     try {
@@ -353,14 +345,14 @@
       if (s.left) pip.style.left = s.left;
       if (s.top) pip.style.top = s.top;
     } catch (e) {}
-    // default position (bottom-right) if none saved
+    
     if (!pip.style.left) {
       pip.style.left = Math.max(12, window.innerWidth - 384 - 24) + "px";
       pip.style.top = Math.max(12, window.innerHeight - 300 - 24) + "px";
     }
   }
 
-  /* ── open / close / minimize ─────────────────────── */
+  
   function openPip() {
     loadState();
     pip.classList.add("open");
@@ -370,7 +362,7 @@
   }
   function closePip() {
     pip.classList.remove("open");
-    iframe.src = "about:blank"; // stop playback
+    iframe.src = "about:blank"; 
     launch.style.display = "flex";
   }
   function toggleMin() {
@@ -388,7 +380,7 @@
     }
   });
 
-  /* ── search input ────────────────────────────────── */
+  
   pip.querySelector('[data-act="go"]').addEventListener("click", runQuery);
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") runQuery();
@@ -406,7 +398,7 @@
     doSearch(q);
   }
 
-  /* ── parse a YouTube URL / ID ────────────────────── */
+  
   function parseYouTube(text) {
     text = text.trim();
     let m =
@@ -415,7 +407,7 @@
     return m ? m[1] : null;
   }
 
-  /* ── playback ────────────────────────────────────── */
+  
   function playVideo(id, title) {
     if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return;
     iframe.src =
@@ -427,7 +419,7 @@
     pip.classList.remove("minimized");
   }
 
-  /* ── search providers ────────────────────────────── */
+  
   async function fetchTimeout(url, ms) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), ms);
@@ -454,7 +446,7 @@
           author: it.snippet.channelTitle,
         }));
     }
-    // keyless: try Piped instances until one answers
+    
     for (const base of PIPED) {
       try {
         const r = await fetchTimeout(`${base}/search?q=${enc}&filter=videos`, 7000);
@@ -470,7 +462,7 @@
           .filter((i) => /^[A-Za-z0-9_-]{11}$/.test(i.id));
         if (items.length) return items;
       } catch (e) {
-        /* try next */
+        
       }
     }
     throw new Error("no-provider");
@@ -498,7 +490,7 @@
     }
   }
 
-  /* ── results rendering (textContent = safe from injection) ── */
+  
   function renderResults(items) {
     results.innerHTML = "";
     items.forEach((it) => {
@@ -558,13 +550,13 @@
     );
   }
 
-  /* ── drag + drop-to-corner snapping ── */
-  const SNAP = 130; // how close (px) to a corner before it snaps there
-  const DOCK_M = 16; // margin from the edge once docked
-  const DOCK_W = 300, // compact size the player shrinks to when docked in a corner
+  
+  const SNAP = 130; 
+  const DOCK_M = 16; 
+  const DOCK_W = 300, 
     DOCK_H = 196;
 
-  // corner drop-zone hints, shown only while dragging
+  
   const dzWrap = document.createElement("div");
   dzWrap.id = "yt-dropzones";
   dzWrap.style.cssText =
@@ -601,10 +593,10 @@
 
   let drag = null;
   head.addEventListener("pointerdown", (e) => {
-    if (e.target.closest("[data-act]")) return; // let buttons work
+    if (e.target.closest("[data-act]")) return; 
     const r = pip.getBoundingClientRect();
     drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-    pip.style.transition = ""; // no lag while dragging
+    pip.style.transition = ""; 
     shield.classList.add("show");
     shield.style.cursor = "grabbing";
     dzWrap.style.display = "block";
@@ -631,7 +623,7 @@
     window.removeEventListener("pointermove", onDrag);
     window.removeEventListener("pointerup", endDrag);
 
-    // drop-to-corner: shrink to a compact size and snap flush into the corner
+    
     const c = nearCorner();
     if (c) {
       const W = window.innerWidth, H = window.innerHeight;
@@ -647,7 +639,7 @@
     }
   }
 
-  /* ── resizing from any edge or corner ────────────────── */
+  
   const MIN_W = 264,
     MIN_H = 188,
     MARGIN = 4;
@@ -693,12 +685,12 @@
       h = Math.max(MIN_H, h);
     }
     if (d.includes("w")) {
-      // right edge stays fixed; left edge follows the cursor
+      
       left = Math.max(MARGIN, Math.min(rez.left + dx, right - MIN_W));
       w = right - left;
     }
     if (d.includes("n")) {
-      // bottom edge stays fixed; top edge follows the cursor
+      
       top = Math.max(MARGIN, Math.min(rez.top + dy, bottom - MIN_H));
       h = bottom - top;
     }
@@ -715,7 +707,7 @@
     saveState();
   }
 
-  /* ── keep on screen when the window resizes ─────────── */
+  
   function clampIntoView() {
     const r = pip.getBoundingClientRect();
     let x = Math.min(r.left, window.innerWidth - pip.offsetWidth - 4);
@@ -727,6 +719,6 @@
     if (pip.classList.contains("open")) clampIntoView();
   });
 
-  /* ── theme sync (in case the page sets data-theme) ── */
-  // styles already use the page's CSS variables with fallbacks, so nothing to do.
+  
+  
 })();
